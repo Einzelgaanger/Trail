@@ -8,6 +8,12 @@ import Dashboard from "./pages/Dashboard";
 import Goals from "./pages/Goals";
 import Projects from "./pages/Projects";
 import Settings from "./pages/Settings";
+import ESGAnalytics from "./pages/ESGAnalytics";
+import GreenTaxonomy from "./pages/GreenTaxonomy";
+import CarbonNetZero from "./pages/CarbonNetZero";
+import Reports from "./pages/Reports";
+import PortfolioDrilldown from "./pages/PortfolioDrilldown";
+import PFISubmissions from "./pages/PFISubmissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,16 +27,16 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/insights" element={<Dashboard />} />
+          <Route path="/dashboard/insights" element={<ESGAnalytics />} />
           <Route path="/goals-indicator" element={<Goals />} />
           <Route path="/programme" element={<Projects />} />
           <Route path="/programme/new-programme" element={<Projects />} />
-          <Route path="/green-taxonomy" element={<Dashboard />} />
-          <Route path="/carbon-netzero" element={<Dashboard />} />
-          <Route path="/projects-drilldown" element={<Projects />} />
-          <Route path="/reports" element={<Dashboard />} />
+          <Route path="/green-taxonomy" element={<GreenTaxonomy />} />
+          <Route path="/carbon-netzero" element={<CarbonNetZero />} />
+          <Route path="/projects-drilldown" element={<PortfolioDrilldown />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/form" element={<PFISubmissions />} />
           <Route path="/settings" element={<Settings />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
