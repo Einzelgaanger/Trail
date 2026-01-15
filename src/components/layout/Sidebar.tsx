@@ -54,6 +54,7 @@ const navItems: NavItem[] = [
     children: [
       { title: "All Projects", href: "/programme" },
       { title: "New Project", href: "/programme/new-programme" },
+      { title: "PFI Submissions", href: "/form" },
     ],
   },
   {
