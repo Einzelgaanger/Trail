@@ -13,13 +13,31 @@ import {
   Factory,
   Zap,
   Truck,
-  Calendar,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Carbon data
+// Carbon data per documentation
+interface ProjectCarbon {
+  id: string;
+  projectId: string;
+  name: string;
+  sector: string;
+  scope1: number;
+  scope2: number;
+  scope3: number;
+  total: number;
+  baselineYear: string;
+  baselineValue: number;
+  currentValue: number;
+  targetYear: string;
+  targetReduction: number;
+  currentProgress: number;
+  status: "On Track" | "At Risk" | "Off Track";
+}
+
 const carbonOverview = {
   totalEmissions: 53300,
   scope1: 12450,
@@ -28,51 +46,89 @@ const carbonOverview = {
   netZeroTarget: "2050",
   reductionTarget: 40,
   currentReduction: 27.2,
-  projectedAchievement: "2048",
+  baselineYear: "2020",
 };
 
-const projectEmissions = [
-  { id: "1", name: "Lagos Solar Farm", sector: "Renewable Energy", scope1: true, scope2: true, scope3: false, emissions: 450, target: 30, current: 25, status: "On Track" },
-  { id: "2", name: "Kano Agriculture Hub", sector: "Agriculture", scope1: true, scope2: true, scope3: true, emissions: 2850, target: 25, current: 18, status: "On Track" },
-  { id: "3", name: "Ogun Manufacturing", sector: "Manufacturing", scope1: true, scope2: true, scope3: true, emissions: 12500, target: 40, current: 15, status: "At Risk" },
-  { id: "4", name: "Abuja Green Building", sector: "Real Estate", scope1: false, scope2: true, scope3: true, emissions: 1200, target: 35, current: 32, status: "On Track" },
-  { id: "5", name: "Rivers Water Treatment", sector: "Water & Sanitation", scope1: true, scope2: true, scope3: false, emissions: 850, target: 20, current: 22, status: "Achieved" },
-  { id: "6", name: "Delta Oil Remediation", sector: "Environmental", scope1: true, scope2: false, scope3: true, emissions: 5600, target: 50, current: 20, status: "At Risk" },
-];
-
-const reductionInitiatives = [
-  { name: "Solar Panel Installation", impact: 2500, status: "In Progress", progress: 65, cost: 180000000 },
-  { name: "Energy Efficiency Program", impact: 1800, status: "In Progress", progress: 45, cost: 85000000 },
-  { name: "Fleet Electrification", impact: 3200, status: "Planning", progress: 15, cost: 320000000 },
-  { name: "Carbon Offset Purchases", impact: 5000, status: "Completed", progress: 100, cost: 120000000 },
+const projectCarbonData: ProjectCarbon[] = [
+  { id: "1", projectId: "DBN-2024-001", name: "Lagos Solar Farm", sector: "Renewable Energy", scope1: 120, scope2: 85, scope3: 245, total: 450, baselineYear: "2022", baselineValue: 580, currentValue: 450, targetYear: "2027", targetReduction: 30, currentProgress: 25, status: "On Track" },
+  { id: "2", projectId: "DBN-2024-002", name: "Kano Agricultural Hub", sector: "Agriculture", scope1: 850, scope2: 650, scope3: 1350, total: 2850, baselineYear: "2021", baselineValue: 3500, currentValue: 2850, targetYear: "2028", targetReduction: 25, currentProgress: 18, status: "On Track" },
+  { id: "3", projectId: "DBN-2023-018", name: "Ogun Manufacturing Hub", sector: "Manufacturing", scope1: 4200, scope2: 3100, scope3: 5200, total: 12500, baselineYear: "2020", baselineValue: 14700, currentValue: 12500, targetYear: "2030", targetReduction: 40, currentProgress: 15, status: "At Risk" },
+  { id: "4", projectId: "DBN-2024-003", name: "Abuja Green Building", sector: "Real Estate", scope1: 180, scope2: 420, scope3: 600, total: 1200, baselineYear: "2023", baselineValue: 1650, currentValue: 1200, targetYear: "2028", targetReduction: 35, currentProgress: 32, status: "On Track" },
+  { id: "5", projectId: "DBN-2024-004", name: "Rivers Water Treatment", sector: "Water & Sanitation", scope1: 280, scope2: 320, scope3: 250, total: 850, baselineYear: "2022", baselineValue: 1090, currentValue: 850, targetYear: "2026", targetReduction: 20, currentProgress: 22, status: "On Track" },
+  { id: "6", projectId: "DBN-2024-005", name: "Delta Oil Remediation", sector: "Environmental", scope1: 1800, scope2: 1200, scope3: 2600, total: 5600, baselineYear: "2021", baselineValue: 11200, currentValue: 5600, targetYear: "2030", targetReduction: 50, currentProgress: 20, status: "Off Track" },
 ];
 
 const formatNumber = (value: number) => {
   return new Intl.NumberFormat("en-NG").format(value);
 };
 
-const formatCurrency = (value: number) => {
-  return `₦${(value / 1000000).toFixed(0)}M`;
-};
-
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "On Track": return "bg-primary/10 text-primary border-primary/20";
-    case "Achieved": return "bg-success/10 text-success border-success/20";
-    case "At Risk": return "bg-destructive/10 text-destructive border-destructive/20";
-    case "Completed": return "bg-success/10 text-success border-success/20";
-    case "In Progress": return "bg-primary/10 text-primary border-primary/20";
-    case "Planning": return "bg-warning/10 text-warning border-warning/20";
+    case "On Track": return "bg-success/10 text-success border-success/20";
+    case "At Risk": return "bg-warning/10 text-warning border-warning/20";
+    case "Off Track": return "bg-destructive/10 text-destructive border-destructive/20";
     default: return "bg-muted text-muted-foreground border-border";
   }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case "On Track": return <CheckCircle className="w-3 h-3" />;
+    case "At Risk": return <AlertTriangle className="w-3 h-3" />;
+    case "Off Track": return <XCircle className="w-3 h-3" />;
+    default: return null;
+  }
+};
+
+const exportToCSV = (data: ProjectCarbon[]) => {
+  const date = new Date().toISOString().split('T')[0];
+  const filename = `DBN_Carbon_NetZero_Report_${date}.csv`;
+  
+  // Build CSV content
+  const headers = ["Project ID", "Project Name", "Sector", "Scope 1 (tCO₂e)", "Scope 2 (tCO₂e)", "Scope 3 (tCO₂e)", "Total (tCO₂e)", "Baseline Year", "Baseline Value", "Current Value", "Target Year", "Target Reduction %", "Current Progress %", "Status"];
+  
+  const rows = data.map(p => [
+    p.projectId,
+    p.name,
+    p.sector,
+    p.scope1,
+    p.scope2,
+    p.scope3,
+    p.total,
+    p.baselineYear,
+    p.baselineValue,
+    p.currentValue,
+    p.targetYear,
+    p.targetReduction,
+    p.currentProgress,
+    p.status
+  ]);
+
+  const csvContent = [
+    `DBN Carbon & Net Zero Report`,
+    `Generated: ${date}`,
+    `Total Portfolio Emissions: ${formatNumber(carbonOverview.totalEmissions)} tCO₂e`,
+    `Net Zero Target Year: ${carbonOverview.netZeroTarget}`,
+    ``,
+    headers.join(","),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+  ].join("\n");
+
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
 };
 
 export default function CarbonNetZero() {
   const [searchText, setSearchText] = useState("");
 
   const filteredProjects = useMemo(() => {
-    return projectEmissions.filter((project) =>
+    return projectCarbonData.filter((project) =>
       project.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      project.projectId.toLowerCase().includes(searchText.toLowerCase()) ||
       project.sector.toLowerCase().includes(searchText.toLowerCase())
     );
   }, [searchText]);
@@ -90,7 +146,7 @@ export default function CarbonNetZero() {
               Track and manage carbon emissions and net-zero targets
             </p>
           </div>
-          <Button variant="outline" className="gap-2">
+          <Button onClick={() => exportToCSV(filteredProjects)} variant="outline" className="gap-2">
             <Download className="w-4 h-4" />
             Export Report
           </Button>
@@ -134,7 +190,7 @@ export default function CarbonNetZero() {
             </div>
             <p className="text-4xl font-bold text-primary">{carbonOverview.netZeroTarget}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Projected: {carbonOverview.projectedAchievement}
+              Baseline: {carbonOverview.baselineYear}
             </p>
           </div>
 
@@ -149,17 +205,17 @@ export default function CarbonNetZero() {
           </div>
         </div>
 
-        {/* Projects Emissions Table */}
+        {/* Carbon Data Table per Documentation */}
         <div className="dashboard-card">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Flame className="w-5 h-5 text-accent" />
-              Project Emissions
+              Project Carbon Data
             </h3>
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search projects..."
+                placeholder="Search by Project ID, Name, Sector..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 className="pl-9"
@@ -170,99 +226,75 @@ export default function CarbonNetZero() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">Project</th>
+                  <th className="text-left py-3 text-sm font-medium text-muted-foreground sticky left-0 bg-card">Project ID</th>
+                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">Project Name</th>
                   <th className="text-left py-3 text-sm font-medium text-muted-foreground">Sector</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Scope 1</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Scope 2</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Scope 3</th>
-                  <th className="text-right py-3 text-sm font-medium text-muted-foreground">Emissions</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Reduction</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="text-right py-3 text-sm font-medium text-muted-foreground">Scope 1</th>
+                  <th className="text-right py-3 text-sm font-medium text-muted-foreground">Scope 2</th>
+                  <th className="text-right py-3 text-sm font-medium text-muted-foreground">Scope 3</th>
+                  <th className="text-right py-3 text-sm font-medium text-muted-foreground font-bold">Total</th>
+                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Baseline vs Current</th>
+                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Target & Progress</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredProjects.map((project) => (
-                  <tr key={project.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                    <td className="py-3 font-medium">{project.name}</td>
-                    <td className="py-3 text-sm text-muted-foreground">{project.sector}</td>
-                    <td className="py-3 text-center">
-                      {project.scope1 ? (
-                        <CheckCircle className="w-4 h-4 text-success mx-auto" />
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 text-center">
-                      {project.scope2 ? (
-                        <CheckCircle className="w-4 h-4 text-success mx-auto" />
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 text-center">
-                      {project.scope3 ? (
-                        <CheckCircle className="w-4 h-4 text-success mx-auto" />
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 text-right font-medium">{formatNumber(project.emissions)} tCO₂e</td>
-                    <td className="py-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-sm">{project.current}%</span>
-                        <span className="text-xs text-muted-foreground">/ {project.target}%</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-center">
-                      <span className={cn(
-                        "px-2 py-1 rounded text-xs font-medium border",
-                        getStatusColor(project.status)
-                      )}>
-                        {project.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {filteredProjects.map((project) => {
+                  const baselineProgress = ((project.baselineValue - project.currentValue) / project.baselineValue) * 100;
+                  return (
+                    <tr key={project.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                      <td className="py-3 font-mono text-sm sticky left-0 bg-card">{project.projectId}</td>
+                      <td className="py-3 font-medium">{project.name}</td>
+                      <td className="py-3 text-sm text-muted-foreground">{project.sector}</td>
+                      <td className="py-3 text-right text-sm">{formatNumber(project.scope1)}</td>
+                      <td className="py-3 text-right text-sm">{formatNumber(project.scope2)}</td>
+                      <td className="py-3 text-right text-sm">{formatNumber(project.scope3)}</td>
+                      <td className="py-3 text-right font-bold">{formatNumber(project.total)}</td>
+                      <td className="py-3">
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground mb-1">
+                            {project.baselineYear}: {formatNumber(project.baselineValue)} → {formatNumber(project.currentValue)}
+                          </div>
+                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-success rounded-full"
+                              style={{ width: `${Math.min(baselineProgress, 100)}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-success mt-1">-{baselineProgress.toFixed(1)}%</div>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground mb-1">
+                            {project.targetYear}: -{project.targetReduction}% target
+                          </div>
+                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={cn(
+                                "h-full rounded-full",
+                                project.status === "On Track" ? "bg-success" :
+                                project.status === "At Risk" ? "bg-warning" : "bg-destructive"
+                              )}
+                              style={{ width: `${(project.currentProgress / project.targetReduction) * 100}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <span className="text-xs font-medium">{project.currentProgress}%</span>
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border",
+                              getStatusColor(project.status)
+                            )}>
+                              {getStatusIcon(project.status)}
+                              {project.status}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Reduction Initiatives */}
-        <div className="dashboard-card">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <TrendingDown className="w-5 h-5 text-success" />
-            Carbon Reduction Initiatives
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {reductionInitiatives.map((initiative, idx) => (
-              <div key={idx} className="p-4 bg-muted/30 rounded-lg border border-border">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h4 className="font-medium">{initiative.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Expected Impact: -{formatNumber(initiative.impact)} tCO₂e
-                    </p>
-                  </div>
-                  <span className={cn(
-                    "px-2 py-1 rounded text-xs font-medium border",
-                    getStatusColor(initiative.status)
-                  )}>
-                    {initiative.status}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium">{initiative.progress}%</span>
-                  </div>
-                  <Progress value={initiative.progress} className="h-2" />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Budget: {formatCurrency(initiative.cost)}
-                </p>
-              </div>
-            ))}
           </div>
         </div>
       </div>
