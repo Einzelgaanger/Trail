@@ -3,10 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Goals from "./pages/Goals";
 import Projects from "./pages/Projects";
+import NewProject from "./pages/NewProject";
 import Settings from "./pages/Settings";
 import ESGAnalytics from "./pages/ESGAnalytics";
 import GreenTaxonomy from "./pages/GreenTaxonomy";
@@ -20,27 +23,30 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/insights" element={<ESGAnalytics />} />
-          <Route path="/goals-indicator" element={<Goals />} />
-          <Route path="/programme" element={<Projects />} />
-          <Route path="/programme/new-programme" element={<Projects />} />
-          <Route path="/green-taxonomy" element={<GreenTaxonomy />} />
-          <Route path="/carbon-netzero" element={<CarbonNetZero />} />
-          <Route path="/projects-drilldown" element={<PortfolioDrilldown />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/form" element={<PFISubmissions />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/insights" element={<ESGAnalytics />} />
+            <Route path="/goals-indicator" element={<Goals />} />
+            <Route path="/programme" element={<Projects />} />
+            <Route path="/programme/new-programme" element={<NewProject />} />
+            <Route path="/green-taxonomy" element={<GreenTaxonomy />} />
+            <Route path="/carbon-netzero" element={<CarbonNetZero />} />
+            <Route path="/projects-drilldown" element={<PortfolioDrilldown />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/form" element={<PFISubmissions />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
