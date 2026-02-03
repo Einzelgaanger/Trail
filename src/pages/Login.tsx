@@ -1,16 +1,25 @@
 "use client";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrendingUp, Mail, Lock, Building2, User, Eye, EyeOff } from "lucide-react";
+import { TrendingUp, Mail, Lock, Building2, User, Eye, EyeOff, CheckCircle, Shield, BarChart3, Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+// Hardcoded credentials
+const VALID_CREDENTIALS = {
+  organisation: { email: "admin@trail.com", password: "admin123" },
+  personal: { email: "user@trail.com", password: "user123" },
+};
 
 export default function Login() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isOrgAccount, setIsOrgAccount] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -18,19 +27,59 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login submitted:", { ...formData, accountType: isOrgAccount ? "organisation" : "personal" });
-    navigate("/dashboard");
+    setIsLoading(true);
+
+    const credentials = isOrgAccount ? VALID_CREDENTIALS.organisation : VALID_CREDENTIALS.personal;
+    
+    setTimeout(() => {
+      if (formData.email === credentials.email && formData.password === credentials.password) {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully signed in to Trail ESG Platform",
+        });
+        navigate("/dashboard");
+      } else {
+        toast({
+          title: "Invalid credentials",
+          description: `Try: ${credentials.email} / ${credentials.password}`,
+          variant: "destructive",
+        });
+      }
+      setIsLoading(false);
+    }, 800);
   };
+
+  const features = [
+    { icon: <BarChart3 className="w-5 h-5" />, title: "ESG Analytics", desc: "Real-time insights and reporting" },
+    { icon: <Leaf className="w-5 h-5" />, title: "Green Taxonomy", desc: "Classify and track green investments" },
+    { icon: <Shield className="w-5 h-5" />, title: "Compliance", desc: "Meet regulatory requirements" },
+    { icon: <CheckCircle className="w-5 h-5" />, title: "Data Quality", desc: "Validated and accurate data" },
+  ];
 
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary/90 to-accent relative overflow-hidden">
-        <div className="absolute inset-0 opacity-50" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+        </div>
+
+        {/* Decorative Circles */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
         
-        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+        <div className="relative z-10 flex flex-col justify-center px-12 text-white w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-lg">
               <TrendingUp className="w-7 h-7" />
             </div>
             <span className="text-3xl font-bold tracking-tight">Trail</span>
@@ -39,27 +88,39 @@ export default function Login() {
           <h1 className="text-4xl font-bold mb-4 leading-tight">
             ESG Integrated<br />Monitoring Solution
           </h1>
-          <p className="text-lg text-white/80 max-w-md">
-            Track your environmental, social, and governance metrics with precision. 
+          <p className="text-lg text-white/80 max-w-md mb-10">
+            Track environmental, social, and governance metrics with precision. 
             Drive sustainable impact and meet your green taxonomy goals.
           </p>
 
-          <div className="mt-12 grid grid-cols-2 gap-4 max-w-md">
-            <div className="bg-white/10 backdrop-blur rounded-xl p-4">
+          {/* Feature Cards */}
+          <div className="grid grid-cols-2 gap-4 max-w-md">
+            {features.map((feature, idx) => (
+              <div key={idx} className="bg-white/10 backdrop-blur rounded-xl p-4 border border-white/10 hover:bg-white/15 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center mb-3">
+                  {feature.icon}
+                </div>
+                <h3 className="font-semibold mb-1">{feature.title}</h3>
+                <p className="text-sm text-white/70">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Stats Bar */}
+          <div className="mt-10 flex gap-8">
+            <div>
               <div className="text-3xl font-bold">42</div>
               <div className="text-sm text-white/70">Active Projects</div>
             </div>
-            <div className="bg-white/10 backdrop-blur rounded-xl p-4">
+            <div className="w-px bg-white/20" />
+            <div>
               <div className="text-3xl font-bold">87%</div>
               <div className="text-sm text-white/70">ESG Compliance</div>
             </div>
-            <div className="bg-white/10 backdrop-blur rounded-xl p-4">
+            <div className="w-px bg-white/20" />
+            <div>
               <div className="text-3xl font-bold">₦12.5B</div>
               <div className="text-sm text-white/70">Portfolio Value</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-xl p-4">
-              <div className="text-3xl font-bold">65%</div>
-              <div className="text-sm text-white/70">Green Taxonomy</div>
             </div>
           </div>
         </div>
@@ -131,6 +192,18 @@ export default function Login() {
             </button>
           </div>
 
+          {/* Demo Credentials Hint */}
+          <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">Demo credentials:</strong><br />
+              {isOrgAccount ? (
+                <>Email: admin@trail.com | Password: admin123</>
+              ) : (
+                <>Email: user@trail.com | Password: user123</>
+              )}
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
@@ -151,14 +224,9 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </Label>
-                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -183,17 +251,21 @@ export default function Login() {
             <Button 
               type="submit" 
               className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+              disabled={isLoading}
             >
-              Sign In
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/sign-up" className="text-primary font-medium hover:underline">
-              Create account
-            </Link>
-          </p>
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-border">
+            <p className="text-center text-sm text-muted-foreground">
+              Development Bank of Nigeria ESG Platform
+            </p>
+            <p className="text-center text-xs text-muted-foreground mt-1">
+              © 2024 Trail. All rights reserved.
+            </p>
+          </div>
         </div>
       </div>
     </div>
