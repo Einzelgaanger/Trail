@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   LayoutDashboard,
   Target,
@@ -11,14 +12,20 @@ import {
   ChevronDown,
   ChevronRight,
   Leaf,
-  BarChart3,
-  Globe,
-  Flame,
   TrendingUp,
   Users,
   LogOut,
   HelpCircle,
+  Sun,
+  Moon,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
   title: string;
@@ -71,6 +78,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const [expandedItems, setExpandedItems] = useState<string[]>(["ESG Management"]);
 
   const toggleExpanded = (title: string) => {
@@ -159,21 +167,62 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="border-t border-sidebar-border p-2">
+        {/* Theme Toggle */}
+        <button 
+          onClick={toggleTheme}
+          className="sidebar-link w-full"
+        >
+          {theme === "light" ? (
+            <Moon className="w-5 h-5" />
+          ) : (
+            <Sun className="w-5 h-5" />
+          )}
+          <span>Theme</span>
+        </button>
+
+        {/* Help */}
         <button className="sidebar-link w-full">
           <HelpCircle className="w-5 h-5" />
           <span>Help & Support</span>
         </button>
-        <div className="sidebar-link mx-2 mt-2 bg-sidebar-accent/50 rounded-lg">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <Users className="w-4 h-4 text-sidebar-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              Garden Ventures
-            </p>
-            <p className="text-xs text-sidebar-muted truncate">Administrator</p>
-          </div>
-        </div>
+
+        {/* User Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="sidebar-link w-full mx-0 mt-2 bg-sidebar-accent/50 rounded-lg">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <Users className="w-4 h-4 text-sidebar-primary" />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  Garden Ventures
+                </p>
+                <p className="text-xs text-sidebar-muted truncate">Administrator</p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-sidebar-muted" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link to="/settings">Profile</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings">Change Password</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings">Account Settings</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/" className="text-destructive">
+                <LogOut className="w-4 h-4 mr-2" />
+                Log Out
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Sign Out */}
         <Link to="/" className="sidebar-link w-full mt-2 text-destructive/80 hover:text-destructive hover:bg-destructive/10">
           <LogOut className="w-5 h-5" />
           <span>Sign Out</span>
