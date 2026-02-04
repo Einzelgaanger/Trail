@@ -13,62 +13,12 @@ import {
   TrendingUp,
   ChevronRight,
   Layers,
-  XCircle,
   CheckCircle,
-  AlertCircle
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Extended mock data per Documentation
-interface Project {
-  id: string;
-  projectId: string;
-  pfiName: string;
-  sector: string;
-  location: string;
-  amount: number;
-  startDate: string;
-  endDate: string;
-  taxonomyStatus: "Green" | "Transition" | "Not Green";
-  esgStatus: "Complete" | "Incomplete";
-  esgRagStatus: "Compliant" | "Warning" | "Critical";
-  scope1: boolean;
-  scope2: boolean;
-  scope3: boolean;
-  dataQualityScore: number;
-}
-
-const projectDetails: Project[] = [
-  { id: "1", projectId: "DBN-2024-001", pfiName: "Lagos Solar Farm", sector: "Renewable Energy", location: "Lagos", amount: 2500000000, startDate: "2024-01-15", endDate: "2025-12-31", taxonomyStatus: "Green", esgStatus: "Complete", esgRagStatus: "Compliant", scope1: true, scope2: true, scope3: false, dataQualityScore: 95 },
-  { id: "2", projectId: "DBN-2024-002", pfiName: "Kano Agri Hub", sector: "Agriculture", location: "Kano", amount: 1800000000, startDate: "2024-03-01", endDate: "2026-02-28", taxonomyStatus: "Transition", esgStatus: "Incomplete", esgRagStatus: "Warning", scope1: true, scope2: true, scope3: true, dataQualityScore: 72 },
-  { id: "3", projectId: "DBN-2024-003", pfiName: "Abuja Green Building", sector: "Real Estate", location: "Abuja", amount: 3200000000, startDate: "2024-02-10", endDate: "2025-08-15", taxonomyStatus: "Green", esgStatus: "Complete", esgRagStatus: "Compliant", scope1: true, scope2: true, scope3: true, dataQualityScore: 88 },
-  { id: "4", projectId: "DBN-2024-004", pfiName: "Rivers Water Treatment", sector: "Water & Sanitation", location: "Rivers", amount: 1500000000, startDate: "2024-04-01", endDate: "2025-10-31", taxonomyStatus: "Green", esgStatus: "Complete", esgRagStatus: "Compliant", scope1: true, scope2: true, scope3: false, dataQualityScore: 92 },
-  { id: "5", projectId: "DBN-2023-018", pfiName: "Ogun Manufacturing", sector: "Manufacturing", location: "Ogun", amount: 4500000000, startDate: "2023-06-15", endDate: "2025-06-14", taxonomyStatus: "Not Green", esgStatus: "Complete", esgRagStatus: "Critical", scope1: true, scope2: true, scope3: true, dataQualityScore: 45 },
-  { id: "6", projectId: "DBN-2024-005", pfiName: "Kaduna Wind Farm", sector: "Renewable Energy", location: "Kaduna", amount: 2100000000, startDate: "2024-05-01", endDate: "2026-05-01", taxonomyStatus: "Green", esgStatus: "Incomplete", esgRagStatus: "Warning", scope1: true, scope2: true, scope3: false, dataQualityScore: 78 },
-];
-
-const sectorData = [
-  { sector: "Renewable Energy", projects: 12, value: 4500000000, esgScore: 92, greenPercentage: 95 },
-  { sector: "Agriculture", projects: 8, value: 2800000000, esgScore: 75, greenPercentage: 72 },
-  { sector: "Manufacturing", projects: 10, value: 3200000000, esgScore: 65, greenPercentage: 45 },
-  { sector: "Real Estate", projects: 7, value: 1500000000, esgScore: 82, greenPercentage: 68 },
-  { sector: "Water & Sanitation", projects: 5, value: 500000000, esgScore: 88, greenPercentage: 90 },
-];
-
-const regionData = [
-  { region: "Lagos", projects: 15, value: 4200000000 },
-  { region: "Abuja", projects: 10, value: 3500000000 },
-  { region: "Rivers", projects: 8, value: 2800000000 },
-  { region: "Kano", projects: 5, value: 1200000000 },
-  { region: "Ogun", projects: 4, value: 800000000 },
-];
-
-const formatCurrency = (value: number) => {
-  if (value >= 1000000000) {
-    return `₦${(value / 1000000000).toFixed(1)}B`;
-  }
-  return `₦${(value / 1000000).toFixed(0)}M`;
-};
+import { projects, calculateSectorBreakdown, calculateRegionBreakdown, formatCurrencyShort } from "@/data/esgData";
+import { exportPDF } from "@/lib/pdfExport";
 
 const getTaxonomyColor = (status: string) => {
   switch (status) {
@@ -79,15 +29,15 @@ const getTaxonomyColor = (status: string) => {
   }
 };
 
-const getEsgStatusColor = (status: string) => {
-  return status === "Complete" ? "bg-success/10 text-success" : "bg-warning/10 text-warning";
+const getEsgStatusColor = (completeness: number) => {
+  return completeness >= 80 ? "bg-success/10 text-success" : "bg-warning/10 text-warning";
 };
 
 const getRagColor = (status: string) => {
   switch (status) {
-    case "Compliant": return "bg-success/10 text-success border-success/20";
-    case "Warning": return "bg-warning/10 text-warning border-warning/20";
-    case "Critical": return "bg-destructive/10 text-destructive border-destructive/20";
+    case "On Track": return "bg-success/10 text-success border-success/20";
+    case "At Risk": return "bg-warning/10 text-warning border-warning/20";
+    case "Off Track": return "bg-destructive/10 text-destructive border-destructive/20";
     default: return "bg-muted text-muted-foreground border-border";
   }
 };
@@ -106,24 +56,29 @@ export default function PortfolioDrilldown() {
   const [esgStatusFilter, setEsgStatusFilter] = useState<string>("all");
   const [ragFilter, setRagFilter] = useState<string>("all");
 
+  const sectorData = calculateSectorBreakdown();
+  const regionData = calculateRegionBreakdown();
+
   const filteredProjects = useMemo(() => {
-    return projectDetails.filter((project) => {
-      const matchesSearch = project.pfiName.toLowerCase().includes(searchText.toLowerCase()) ||
+    return projects.filter((project) => {
+      const matchesSearch = project.enterpriseName.toLowerCase().includes(searchText.toLowerCase()) ||
         project.projectId.toLowerCase().includes(searchText.toLowerCase()) ||
         project.sector.toLowerCase().includes(searchText.toLowerCase()) ||
-        project.location.toLowerCase().includes(searchText.toLowerCase());
+        project.state.toLowerCase().includes(searchText.toLowerCase()) ||
+        project.pfiName.toLowerCase().includes(searchText.toLowerCase());
       const matchesSector = !selectedSector || project.sector === selectedSector;
-      const matchesRegion = !selectedRegion || project.location === selectedRegion;
+      const matchesRegion = !selectedRegion || project.state === selectedRegion;
       const matchesTaxonomy = taxonomyFilter === "all" || project.taxonomyStatus === taxonomyFilter;
-      const matchesEsgStatus = esgStatusFilter === "all" || project.esgStatus === esgStatusFilter;
-      const matchesRag = ragFilter === "all" || project.esgRagStatus === ragFilter;
+      const matchesEsgStatus = esgStatusFilter === "all" || 
+        (esgStatusFilter === "Complete" ? project.esgCompleteness >= 80 : project.esgCompleteness < 80);
+      const matchesRag = ragFilter === "all" || project.carbonStatus === ragFilter;
       return matchesSearch && matchesSector && matchesRegion && matchesTaxonomy && matchesEsgStatus && matchesRag;
     });
   }, [searchText, selectedSector, selectedRegion, taxonomyFilter, esgStatusFilter, ragFilter]);
 
   const stats = useMemo(() => ({
     totalProjects: filteredProjects.length,
-    totalValue: filteredProjects.reduce((sum, p) => sum + p.amount, 0),
+    totalValue: filteredProjects.reduce((sum, p) => sum + p.loanAmount, 0),
     greenProjects: filteredProjects.filter(p => p.taxonomyStatus === "Green").length,
     avgDataQuality: filteredProjects.length > 0 
       ? Math.round(filteredProjects.reduce((sum, p) => sum + p.dataQualityScore, 0) / filteredProjects.length)
@@ -143,21 +98,21 @@ export default function PortfolioDrilldown() {
     const date = new Date().toISOString().split('T')[0];
     const filename = `Portfolio_Drilldown_Projects_${date}.csv`;
     
-    const headers = ["Project ID", "PFI Name", "Sector", "Location", "Amount (₦)", "Start Date", "End Date", "Taxonomy Status", "ESG Status", "ESG RAG", "Scope 1", "Scope 2", "Scope 3", "Data Quality Score"];
+    const headers = ["Project ID", "PFI Name", "Enterprise", "Sector", "State", "Amount (₦)", "Start Year", "Taxonomy Status", "ESG %", "Carbon Status", "Scope 1", "Scope 2", "Scope 3", "Data Quality"];
     const rows = filteredProjects.map(p => [
       p.projectId,
       p.pfiName,
+      p.enterpriseName,
       p.sector,
-      p.location,
-      p.amount,
-      p.startDate,
-      p.endDate,
+      p.state,
+      p.loanAmount,
+      p.projectStartYear,
       p.taxonomyStatus,
-      p.esgStatus,
-      p.esgRagStatus,
-      p.scope1 ? "Yes" : "No",
-      p.scope2 ? "Yes" : "No",
-      p.scope3 ? "Yes" : "No",
+      p.esgCompleteness,
+      p.carbonStatus,
+      p.scope1,
+      p.scope2,
+      p.scope3,
       p.dataQualityScore
     ]);
 
@@ -185,7 +140,7 @@ export default function PortfolioDrilldown() {
           <div>
             <h1 className="view-title">Portfolio Drilldown</h1>
             <p className="text-muted-foreground mt-1">
-              Detailed analytical view with drill-down capabilities
+              Detailed project view with drill-down capabilities
             </p>
           </div>
           <div className="flex gap-2">
@@ -195,9 +150,13 @@ export default function PortfolioDrilldown() {
                 Clear
               </Button>
             )}
+            <Button onClick={() => exportPDF("projects")} variant="outline" className="gap-2">
+              <FileText className="w-4 h-4" />
+              Export PDF
+            </Button>
             <Button onClick={exportToCSV} variant="outline" className="gap-2">
               <Download className="w-4 h-4" />
-              Export to CSV
+              Export CSV
             </Button>
           </div>
         </div>
@@ -225,7 +184,7 @@ export default function PortfolioDrilldown() {
           </div>
         )}
 
-        {/* Statistics Cards per Documentation */}
+        {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="stat-card">
             <div className="flex items-center gap-2 mb-2">
@@ -239,7 +198,7 @@ export default function PortfolioDrilldown() {
               <DollarSign className="w-4 h-4 text-primary" />
               <p className="stat-title">Total Portfolio Value</p>
             </div>
-            <p className="stat-value">{formatCurrency(stats.totalValue)}</p>
+            <p className="stat-value">{formatCurrencyShort(stats.totalValue)}</p>
           </div>
           <div className="stat-card">
             <div className="flex items-center gap-2 mb-2">
@@ -265,7 +224,7 @@ export default function PortfolioDrilldown() {
               Breakdown by Sector
             </h3>
             <div className="space-y-3">
-              {sectorData.map((sector) => (
+              {sectorData.slice(0, 6).map((sector) => (
                 <button
                   key={sector.sector}
                   onClick={() => setSelectedSector(sector.sector)}
@@ -280,7 +239,7 @@ export default function PortfolioDrilldown() {
                       <p className="text-sm text-muted-foreground">{sector.projects} projects</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(sector.value)}</p>
+                      <p className="font-semibold">{formatCurrencyShort(sector.value)}</p>
                       <p className="text-sm text-success">{sector.greenPercentage}% Green</p>
                     </div>
                   </div>
@@ -296,10 +255,10 @@ export default function PortfolioDrilldown() {
           <div className="dashboard-card">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-primary" />
-              Breakdown by Region
+              Breakdown by State
             </h3>
             <div className="space-y-3">
-              {regionData.map((region) => (
+              {regionData.slice(0, 6).map((region) => (
                 <button
                   key={region.region}
                   onClick={() => setSelectedRegion(region.region)}
@@ -313,7 +272,7 @@ export default function PortfolioDrilldown() {
                       <h4 className="font-medium">{region.region}</h4>
                       <p className="text-sm text-muted-foreground">{region.projects} projects</p>
                     </div>
-                    <p className="font-semibold">{formatCurrency(region.value)}</p>
+                    <p className="font-semibold">{formatCurrencyShort(region.value)}</p>
                   </div>
                 </button>
               ))}
@@ -321,7 +280,7 @@ export default function PortfolioDrilldown() {
           </div>
         </div>
 
-        {/* Full Table per Documentation */}
+        {/* Full Table */}
         <div className="dashboard-card">
           <div className="flex flex-col gap-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -329,7 +288,7 @@ export default function PortfolioDrilldown() {
               <div className="relative max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by Project ID, PFI Name, Sector, Location..."
+                  placeholder="Search by Project ID, PFI, Enterprise, Sector..."
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   className="pl-9"
@@ -354,18 +313,18 @@ export default function PortfolioDrilldown() {
                 className="h-9 px-3 rounded-md border border-input bg-background text-sm"
               >
                 <option value="all">All ESG Status</option>
-                <option value="Complete">Complete</option>
-                <option value="Incomplete">Incomplete</option>
+                <option value="Complete">Complete (≥80%)</option>
+                <option value="Incomplete">Incomplete (&lt;80%)</option>
               </select>
               <select 
                 value={ragFilter} 
                 onChange={(e) => setRagFilter(e.target.value)}
                 className="h-9 px-3 rounded-md border border-input bg-background text-sm"
               >
-                <option value="all">All RAG Status</option>
-                <option value="Compliant">Compliant</option>
-                <option value="Warning">Warning</option>
-                <option value="Critical">Critical</option>
+                <option value="all">All Carbon Status</option>
+                <option value="On Track">On Track</option>
+                <option value="At Risk">At Risk</option>
+                <option value="Off Track">Off Track</option>
               </select>
             </div>
           </div>
@@ -374,52 +333,59 @@ export default function PortfolioDrilldown() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 text-sm font-medium text-muted-foreground sticky left-0 bg-card">Project ID</th>
-                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">PFI Name</th>
+                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">PFI</th>
+                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">Enterprise</th>
                   <th className="text-left py-3 text-sm font-medium text-muted-foreground">Sector</th>
-                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">Location</th>
-                  <th className="text-right py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground">Amount (₦) ↕</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Start Date</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">End Date</th>
+                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">State</th>
+                  <th className="text-right py-3 text-sm font-medium text-muted-foreground">Amount</th>
                   <th className="text-center py-3 text-sm font-medium text-muted-foreground">Taxonomy</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">ESG Status</th>
+                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">ESG %</th>
                   <th className="text-center py-3 text-sm font-medium text-muted-foreground">Carbon Status</th>
-                  <th className="text-center py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground">Data Quality ↕</th>
+                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Scope 1/2/3</th>
+                  <th className="text-center py-3 text-sm font-medium text-muted-foreground">Quality</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredProjects.map((project) => (
-                  <tr key={project.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors">
+                {filteredProjects.slice(0, 20).map((project) => (
+                  <tr key={project.projectId} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="py-3 font-mono text-sm sticky left-0 bg-card">{project.projectId}</td>
-                    <td className="py-3 font-medium">{project.pfiName}</td>
-                    <td className="py-3 text-sm">{project.sector}</td>
-                    <td className="py-3 text-sm">{project.location}</td>
-                    <td className="py-3 text-right font-medium">{formatCurrency(project.amount)}</td>
-                    <td className="py-3 text-center text-sm">{project.startDate}</td>
-                    <td className="py-3 text-center text-sm">{project.endDate}</td>
+                    <td className="py-3 text-sm">{project.pfiName}</td>
+                    <td className="py-3 font-medium text-sm">{project.enterpriseName}</td>
+                    <td className="py-3 text-sm text-muted-foreground">{project.sector}</td>
+                    <td className="py-3 text-sm text-muted-foreground">{project.state}</td>
+                    <td className="py-3 text-right text-sm font-medium">{formatCurrencyShort(project.loanAmount)}</td>
                     <td className="py-3 text-center">
-                      <span className={cn("px-2 py-1 rounded text-xs font-medium", getTaxonomyColor(project.taxonomyStatus))}>
+                      <span className={cn(
+                        "px-2 py-1 rounded text-xs font-medium",
+                        getTaxonomyColor(project.taxonomyStatus)
+                      )}>
                         {project.taxonomyStatus}
                       </span>
                     </td>
                     <td className="py-3 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={cn("px-2 py-0.5 rounded text-xs font-medium", getEsgStatusColor(project.esgStatus))}>
-                          {project.esgStatus}
-                        </span>
-                        <span className={cn("px-2 py-0.5 rounded text-xs font-medium border", getRagColor(project.esgRagStatus))}>
-                          {project.esgRagStatus}
-                        </span>
-                      </div>
+                      <span className={cn(
+                        "px-2 py-1 rounded text-xs font-medium",
+                        getEsgStatusColor(project.esgCompleteness)
+                      )}>
+                        {project.esgCompleteness}%
+                      </span>
                     </td>
                     <td className="py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <span className={cn("px-1.5 py-0.5 rounded text-xs", project.scope1 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>S1</span>
-                        <span className={cn("px-1.5 py-0.5 rounded text-xs", project.scope2 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>S2</span>
-                        <span className={cn("px-1.5 py-0.5 rounded text-xs", project.scope3 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>S3</span>
-                      </div>
+                      <span className={cn(
+                        "px-2 py-1 rounded text-xs font-medium border",
+                        getRagColor(project.carbonStatus)
+                      )}>
+                        {project.carbonStatus}
+                      </span>
+                    </td>
+                    <td className="py-3 text-center text-xs text-muted-foreground">
+                      {project.scope1} / {project.scope2} / {project.scope3}
                     </td>
                     <td className="py-3 text-center">
-                      <span className={cn("px-2 py-1 rounded text-xs font-medium", getQualityColor(project.dataQualityScore))}>
+                      <span className={cn(
+                        "px-2 py-1 rounded text-xs font-medium",
+                        getQualityColor(project.dataQualityScore)
+                      )}>
                         {project.dataQualityScore}%
                       </span>
                     </td>
@@ -428,6 +394,11 @@ export default function PortfolioDrilldown() {
               </tbody>
             </table>
           </div>
+          {filteredProjects.length > 20 && (
+            <p className="text-sm text-muted-foreground mt-4 text-center">
+              Showing 20 of {filteredProjects.length} projects. Export to see all.
+            </p>
+          )}
         </div>
       </div>
     </DashboardLayout>
