@@ -66,20 +66,17 @@ export default function Login() {
           alt="ESG Analytics Dashboard" 
           className="absolute inset-0 w-full h-full object-cover"
         />
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-accent/70" />
+        {/* Gradient Overlay - reduced opacity for clearer image */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/60 via-primary/50 to-accent/40" />
         
         {/* Decorative Elements */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
         
         <div className="relative z-10 flex flex-col justify-center px-12 text-white w-full">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-lg">
-              <TrendingUp className="w-7 h-7" />
-            </div>
-            <span className="text-3xl font-bold tracking-tight">Trail</span>
+          {/* Logo - Text only */}
+          <div className="mb-10">
+            <span className="text-4xl font-bold tracking-tight">Trail</span>
           </div>
           
           <h1 className="text-4xl font-bold mb-4 leading-tight">
@@ -126,12 +123,9 @@ export default function Login() {
       {/* Right Panel - Login Form */}
       <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12 bg-background">
         <div className="w-full max-w-md mx-auto">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-foreground">Trail</span>
+          {/* Mobile Logo - Text only */}
+          <div className="lg:hidden mb-8">
+            <span className="text-3xl font-bold text-foreground">Trail</span>
           </div>
 
           <div className="mb-8">
