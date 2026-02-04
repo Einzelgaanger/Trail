@@ -9,204 +9,343 @@ declare module "jspdf" {
   }
 }
 
-const primaryColor: [number, number, number] = [25, 105, 51]; // Forest green
-const accentColor: [number, number, number] = [212, 143, 5]; // Gold
-const textColor: [number, number, number] = [33, 33, 33];
+// Professional color palette
+const colors = {
+  primary: [25, 105, 51] as [number, number, number],      // Forest green
+  primaryLight: [39, 174, 96] as [number, number, number], // Light green
+  accent: [212, 143, 5] as [number, number, number],       // Gold
+  dark: [15, 15, 15] as [number, number, number],          // Near black
+  text: [33, 33, 33] as [number, number, number],
+  textLight: [100, 100, 100] as [number, number, number],
+  success: [34, 197, 94] as [number, number, number],
+  warning: [234, 179, 8] as [number, number, number],
+  danger: [239, 68, 68] as [number, number, number],
+  white: [255, 255, 255] as [number, number, number],
+  gray50: [249, 250, 251] as [number, number, number],
+  gray100: [243, 244, 246] as [number, number, number],
+  gray200: [229, 231, 235] as [number, number, number],
+};
+
+// Helper to draw a professional cover page
+const drawCoverPage = (doc: jsPDF, title: string, subtitle: string) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Full page gradient background
+  doc.setFillColor(...colors.primary);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+  // Gold accent bar
+  doc.setFillColor(...colors.accent);
+  doc.rect(0, 85, pageWidth, 6, "F");
+
+  // Decorative lighter stripe at top
+  doc.setFillColor(30, 120, 60);
+  doc.triangle(pageWidth - 100, 0, pageWidth, 0, pageWidth, 140, "F");
+
+  // Logo area - Trail text
+  doc.setTextColor(...colors.white);
+  doc.setFontSize(32);
+  doc.setFont("helvetica", "bold");
+  doc.text("Trail", 20, 50);
+
+  // Subtitle under logo
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("ESG Integrated Solution", 20, 62);
+
+  // Main title
+  doc.setFontSize(36);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, 20, 130);
+
+  // Subtitle
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(220, 220, 220);
+  doc.text(subtitle, 20, 145);
+
+  // Report metadata box
+  const boxY = 180;
+  doc.setFillColor(35, 115, 60);
+  doc.roundedRect(20, boxY, pageWidth - 40, 60, 4, 4, "F");
+
+  doc.setTextColor(...colors.white);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("REPORT INFORMATION", 30, boxY + 15);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  const dateStr = new Date().toLocaleDateString("en-NG", { 
+    year: "numeric", 
+    month: "long", 
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  doc.text(`Generated: ${dateStr}`, 30, boxY + 28);
+  doc.text("Classification: Confidential", 30, boxY + 40);
+  doc.text("Prepared by: DBN ESG Platform", 30, boxY + 52);
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255, 0.6);
+  doc.text("Development Bank of Nigeria", 20, pageHeight - 25);
+  doc.text("© 2025 Trail ESG Platform. All rights reserved.", 20, pageHeight - 15);
+};
+
+// Helper to add page header
+const addPageHeader = (doc: jsPDF, title: string, pageNum: number) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Header bar
+  doc.setFillColor(...colors.primary);
+  doc.rect(0, 0, pageWidth, 20, "F");
+
+  // Gold accent line
+  doc.setFillColor(...colors.accent);
+  doc.rect(0, 20, pageWidth, 2, "F");
+
+  // Title
+  doc.setTextColor(...colors.white);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, 14, 13);
+
+  // Page number
+  doc.setFontSize(9);
+  doc.text(`Page ${pageNum}`, pageWidth - 25, 13);
+};
+
+// Helper to add page footer
+const addPageFooter = (doc: jsPDF) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setFillColor(...colors.gray100);
+  doc.rect(0, pageHeight - 12, pageWidth, 12, "F");
+
+  doc.setTextColor(...colors.textLight);
+  doc.setFontSize(7);
+  doc.text("Development Bank of Nigeria - ESG Integrated Solution | Confidential", 14, pageHeight - 5);
+  doc.text(new Date().toLocaleDateString(), pageWidth - 30, pageHeight - 5);
+};
+
+// Helper to draw KPI cards
+const drawKPICards = (doc: jsPDF, stats: ReturnType<typeof calculatePortfolioStats>, startY: number) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const cardWidth = (pageWidth - 38) / 4;
+  const cardHeight = 38;
+
+  const kpis = [
+    { label: "Portfolio Value", value: `₦${(stats.totalPortfolioValue / 1000000000).toFixed(1)}B`, sub: `${stats.totalProjects} Active Projects`, color: colors.primary },
+    { label: "ESG Completeness", value: `${stats.avgEsgCompleteness}%`, sub: "Average Score", color: colors.primaryLight },
+    { label: "Green Taxonomy", value: `${stats.greenTaxonomy.greenPercentage}%`, sub: `${stats.greenTaxonomy.green} Projects`, color: colors.success },
+    { label: "Carbon Emissions", value: `${(stats.carbonSummary.total / 1000).toFixed(1)}k`, sub: "tCO₂e Total", color: colors.accent },
+  ];
+
+  kpis.forEach((kpi, i) => {
+    const x = 14 + i * (cardWidth + 3);
+    
+    // Card background
+    doc.setFillColor(...colors.gray50);
+    doc.roundedRect(x, startY, cardWidth, cardHeight, 3, 3, "F");
+
+    // Color accent bar at top
+    doc.setFillColor(...kpi.color);
+    doc.roundedRect(x, startY, cardWidth, 4, 3, 3, "F");
+    doc.setFillColor(...colors.gray50);
+    doc.rect(x, startY + 2, cardWidth, 4, "F");
+
+    // Label
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.textLight);
+    doc.text(kpi.label, x + 8, startY + 14);
+
+    // Value
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...kpi.color);
+    doc.text(kpi.value, x + 8, startY + 27);
+
+    // Sub text
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...colors.textLight);
+    doc.text(kpi.sub, x + 8, startY + 34);
+  });
+
+  return startY + cardHeight + 10;
+};
+
+// Section header helper
+const drawSectionHeader = (doc: jsPDF, title: string, y: number) => {
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...colors.dark);
+  doc.text(title, 14, y);
+
+  // Accent underline
+  doc.setDrawColor(...colors.accent);
+  doc.setLineWidth(1.5);
+  doc.line(14, y + 2, 14 + doc.getTextWidth(title), y + 2);
+
+  return y + 10;
+};
 
 export const generatePortfolioPDF = () => {
   const doc = new jsPDF();
   const stats = calculatePortfolioStats();
   const pageWidth = doc.internal.pageSize.getWidth();
 
-  // Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 35, "F");
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
-  doc.setFont("helvetica", "bold");
-  doc.text("DBN ESG Portfolio Report", 14, 20);
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Generated: ${new Date().toLocaleDateString("en-NG", { year: "numeric", month: "long", day: "numeric" })}`, 14, 28);
+  // Cover Page
+  drawCoverPage(doc, "ESG Portfolio Pack", "Comprehensive ESG Performance Report");
 
-  // Executive Summary Section
-  doc.setTextColor(...textColor);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Executive Summary", 14, 48);
-
-  doc.setDrawColor(...accentColor);
-  doc.setLineWidth(0.5);
-  doc.line(14, 51, 80, 51);
+  // Page 2 - Executive Summary
+  doc.addPage();
+  addPageHeader(doc, "Executive Summary", 2);
 
   // KPI Cards
-  const kpiY = 58;
-  const kpiWidth = 42;
-  const kpiHeight = 28;
-  const kpiGap = 4;
+  let currentY = drawKPICards(doc, stats, 32);
 
-  // Portfolio Value
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(14, kpiY, kpiWidth, kpiHeight, 3, 3, "F");
-  doc.setFontSize(8);
+  // Executive Summary Text
+  currentY = drawSectionHeader(doc, "Portfolio Overview", currentY + 5);
+  
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text("Portfolio Value", 16, kpiY + 8);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...primaryColor);
-  doc.text(`₦${(stats.totalPortfolioValue / 1000000000).toFixed(1)}B`, 16, kpiY + 18);
-  doc.setFontSize(7);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`${stats.totalProjects} Projects`, 16, kpiY + 24);
+  doc.setTextColor(...colors.text);
+  const summaryText = `This report provides a comprehensive overview of the Development Bank of Nigeria's ESG portfolio comprising ${stats.totalProjects} active projects with a combined value of ₦${(stats.totalPortfolioValue / 1000000000).toFixed(2)} billion. The portfolio demonstrates strong ESG performance with an average completeness score of ${stats.avgEsgCompleteness}% and ${stats.greenTaxonomy.greenPercentage}% of projects meeting Green Taxonomy criteria.`;
+  const splitText = doc.splitTextToSize(summaryText, pageWidth - 28);
+  doc.text(splitText, 14, currentY);
+  currentY += splitText.length * 5 + 8;
 
-  // ESG Completeness
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(14 + kpiWidth + kpiGap, kpiY, kpiWidth, kpiHeight, 3, 3, "F");
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text("ESG Completeness", 16 + kpiWidth + kpiGap, kpiY + 8);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(39, 174, 96);
-  doc.text(`${stats.avgEsgCompleteness}%`, 16 + kpiWidth + kpiGap, kpiY + 18);
-  doc.setFontSize(7);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Fields Validated", 16 + kpiWidth + kpiGap, kpiY + 24);
-
-  // Green Taxonomy
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(14 + (kpiWidth + kpiGap) * 2, kpiY, kpiWidth, kpiHeight, 3, 3, "F");
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text("Green Taxonomy", 16 + (kpiWidth + kpiGap) * 2, kpiY + 8);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(39, 174, 96);
-  doc.text(`${stats.greenTaxonomy.greenPercentage}%`, 16 + (kpiWidth + kpiGap) * 2, kpiY + 18);
-  doc.setFontSize(7);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Green Classification", 16 + (kpiWidth + kpiGap) * 2, kpiY + 24);
-
-  // Carbon Emissions
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(14 + (kpiWidth + kpiGap) * 3, kpiY, kpiWidth, kpiHeight, 3, 3, "F");
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text("Carbon Emissions", 16 + (kpiWidth + kpiGap) * 3, kpiY + 8);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...accentColor);
-  doc.text(`${(stats.carbonSummary.total / 1000).toFixed(1)}k`, 16 + (kpiWidth + kpiGap) * 3, kpiY + 18);
-  doc.setFontSize(7);
-  doc.setTextColor(100, 100, 100);
-  doc.text("tCO₂e Total", 16 + (kpiWidth + kpiGap) * 3, kpiY + 24);
-
-  // Green Taxonomy Breakdown
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...textColor);
-  doc.text("Green Taxonomy Classification", 14, 100);
+  // Green Taxonomy Classification
+  currentY = drawSectionHeader(doc, "Green Taxonomy Classification", currentY);
 
   autoTable(doc, {
-    startY: 105,
-    head: [["Classification", "Projects", "Percentage", "Status"]],
+    startY: currentY,
+    head: [["Classification", "Projects", "Percentage", "Portfolio Value", "Status"]],
     body: [
-      ["Green", stats.greenTaxonomy.green.toString(), `${stats.greenTaxonomy.greenPercentage}%`, "Aligned"],
-      ["Transition", stats.greenTaxonomy.transition.toString(), `${stats.greenTaxonomy.transitionPercentage}%`, "Progressing"],
-      ["Not Green", stats.greenTaxonomy.notGreen.toString(), `${stats.greenTaxonomy.notGreenPercentage}%`, "Action Required"],
+      ["Green", stats.greenTaxonomy.green.toString(), `${stats.greenTaxonomy.greenPercentage}%`, `${stats.greenTaxonomy.greenPercentageByValue}% of total`, "✓ Fully Aligned"],
+      ["Transition", stats.greenTaxonomy.transition.toString(), `${stats.greenTaxonomy.transitionPercentage}%`, "Progressing", "→ In Progress"],
+      ["Not Green", stats.greenTaxonomy.notGreen.toString(), `${stats.greenTaxonomy.notGreenPercentage}%`, "Action Required", "⚠ Review Needed"],
     ],
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-    alternateRowStyles: { fillColor: [250, 250, 250] },
-    styles: { fontSize: 9 },
-    margin: { left: 14 },
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white,
+      fontStyle: "bold",
+      fontSize: 9,
+      cellPadding: 4,
+    },
+    bodyStyles: { fontSize: 9, cellPadding: 4 },
+    alternateRowStyles: { fillColor: colors.gray50 },
+    margin: { left: 14, right: 14 },
     tableWidth: pageWidth - 28,
+    styles: { overflow: "linebreak" },
   });
 
   // Carbon Summary
-  const carbonY = doc.lastAutoTable.finalY + 15;
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...textColor);
-  doc.text("Carbon Emissions Summary (tCO₂e)", 14, carbonY);
+  currentY = doc.lastAutoTable.finalY + 15;
+  currentY = drawSectionHeader(doc, "Carbon Emissions Summary", currentY);
 
   autoTable(doc, {
-    startY: carbonY + 5,
+    startY: currentY,
     head: [["Scope", "Emissions (tCO₂e)", "% of Total", "Description"]],
     body: [
-      ["Scope 1", stats.carbonSummary.scope1.toLocaleString(), `${Math.round((stats.carbonSummary.scope1 / stats.carbonSummary.total) * 100)}%`, "Direct emissions"],
-      ["Scope 2", stats.carbonSummary.scope2.toLocaleString(), `${Math.round((stats.carbonSummary.scope2 / stats.carbonSummary.total) * 100)}%`, "Energy indirect"],
-      ["Scope 3", stats.carbonSummary.scope3.toLocaleString(), `${Math.round((stats.carbonSummary.scope3 / stats.carbonSummary.total) * 100)}%`, "Other indirect"],
-      ["Total", stats.carbonSummary.total.toLocaleString(), "100%", "All scopes"],
+      ["Scope 1 - Direct", stats.carbonSummary.scope1.toLocaleString(), `${Math.round((stats.carbonSummary.scope1 / stats.carbonSummary.total) * 100)}%`, "Direct emissions from owned operations"],
+      ["Scope 2 - Energy", stats.carbonSummary.scope2.toLocaleString(), `${Math.round((stats.carbonSummary.scope2 / stats.carbonSummary.total) * 100)}%`, "Indirect emissions from purchased energy"],
+      ["Scope 3 - Indirect", stats.carbonSummary.scope3.toLocaleString(), `${Math.round((stats.carbonSummary.scope3 / stats.carbonSummary.total) * 100)}%`, "Other indirect value chain emissions"],
+      ["Total Portfolio", stats.carbonSummary.total.toLocaleString(), "100%", "Combined emissions across all scopes"],
     ],
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-    alternateRowStyles: { fillColor: [250, 250, 250] },
-    styles: { fontSize: 9 },
-    margin: { left: 14 },
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white,
+      fontStyle: "bold",
+      fontSize: 9,
+      cellPadding: 4,
+    },
+    bodyStyles: { fontSize: 9, cellPadding: 4 },
+    alternateRowStyles: { fillColor: colors.gray50 },
+    margin: { left: 14, right: 14 },
     tableWidth: pageWidth - 28,
   });
 
-  // ESG Flags
-  const flagsY = doc.lastAutoTable.finalY + 15;
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...textColor);
-  doc.text("ESG Status Flags", 14, flagsY);
+  // ESG Status Flags
+  currentY = doc.lastAutoTable.finalY + 15;
+  currentY = drawSectionHeader(doc, "ESG Status Flags", currentY);
 
   autoTable(doc, {
-    startY: flagsY + 5,
-    head: [["Status", "Count", "Action Required"]],
+    startY: currentY,
+    head: [["Status Level", "Count", "Percentage", "Required Action"]],
     body: [
-      ["Critical", stats.esgFlags.critical.toString(), "Immediate attention required"],
-      ["Warning", stats.esgFlags.warning.toString(), "Review and address"],
-      ["Compliant", stats.esgFlags.compliant.toString(), "No action needed"],
+      ["🔴 Critical", stats.esgFlags.critical.toString(), `${Math.round((stats.esgFlags.critical / stats.totalProjects) * 100)}%`, "Immediate attention required"],
+      ["🟡 Warning", stats.esgFlags.warning.toString(), `${Math.round((stats.esgFlags.warning / stats.totalProjects) * 100)}%`, "Review and address within 30 days"],
+      ["🟢 Compliant", stats.esgFlags.compliant.toString(), `${Math.round((stats.esgFlags.compliant / stats.totalProjects) * 100)}%`, "No action needed - continue monitoring"],
     ],
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-    alternateRowStyles: { fillColor: [250, 250, 250] },
-    styles: { fontSize: 9 },
-    margin: { left: 14 },
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white,
+      fontStyle: "bold",
+      fontSize: 9,
+      cellPadding: 4,
+    },
+    bodyStyles: { fontSize: 9, cellPadding: 4 },
+    alternateRowStyles: { fillColor: colors.gray50 },
+    margin: { left: 14, right: 14 },
     tableWidth: pageWidth - 28,
   });
 
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 15;
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, footerY - 5, pageWidth, 20, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8);
-  doc.text("Development Bank of Nigeria - ESG Integrated Solution", 14, footerY + 3);
-  doc.text("Confidential Report", pageWidth - 40, footerY + 3);
-
+  addPageFooter(doc);
   return doc;
 };
 
 export const generateProjectListPDF = (projectList: Project[] = projects) => {
   const doc = new jsPDF("landscape");
   const pageWidth = doc.internal.pageSize.getWidth();
+  const stats = calculatePortfolioStats();
 
-  // Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 25, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Portfolio Drilldown Report", 14, 15);
-  doc.setFontSize(9);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 60, 15);
+  // Cover Page
+  drawCoverPage(doc, "Portfolio Drilldown", "Detailed Project-Level Analysis Report");
+
+  // Page 2 - Summary
+  doc.addPage("landscape");
+  addPageHeader(doc, "Project Overview", 2);
+
+  // Mini KPI row
+  const miniKPIs = [
+    { label: "Total Projects", value: stats.totalProjects.toString() },
+    { label: "Portfolio Value", value: `₦${(stats.totalPortfolioValue / 1000000000).toFixed(1)}B` },
+    { label: "Green Projects", value: stats.greenTaxonomy.green.toString() },
+    { label: "Avg ESG Score", value: `${stats.avgEsgCompleteness}%` },
+  ];
+
+  let kpiX = 14;
+  miniKPIs.forEach((kpi) => {
+    doc.setFillColor(...colors.gray50);
+    doc.roundedRect(kpiX, 28, 60, 22, 2, 2, "F");
+    
+    doc.setFontSize(7);
+    doc.setTextColor(...colors.textLight);
+    doc.text(kpi.label, kpiX + 5, 36);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text(kpi.value, kpiX + 5, 46);
+    
+    kpiX += 68;
+  });
 
   // Projects Table
   autoTable(doc, {
-    startY: 32,
-    head: [["Project ID", "PFI", "Enterprise", "Sector", "State", "Amount (₦)", "Taxonomy", "ESG %", "Scope 1", "Scope 2", "Scope 3", "Status"]],
-    body: projectList.slice(0, 25).map((p) => [
+    startY: 58,
+    head: [["Project ID", "PFI", "Enterprise", "Sector", "State", "Amount", "Taxonomy", "ESG %", "Scope 1", "Scope 2", "Scope 3", "Carbon Status"]],
+    body: projectList.slice(0, 30).map((p) => [
       p.projectId,
       p.pfiName,
-      p.enterpriseName.slice(0, 15) + (p.enterpriseName.length > 15 ? "..." : ""),
+      p.enterpriseName.length > 18 ? p.enterpriseName.slice(0, 18) + "..." : p.enterpriseName,
       p.sector,
       p.state,
       formatCurrencyShort(p.loanAmount),
@@ -217,24 +356,48 @@ export const generateProjectListPDF = (projectList: Project[] = projects) => {
       p.scope3.toString(),
       p.carbonStatus,
     ]),
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 7 },
-    styles: { fontSize: 7, cellPadding: 2 },
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white, 
+      fontSize: 7,
+      fontStyle: "bold",
+      cellPadding: 3,
+    },
+    bodyStyles: { fontSize: 7, cellPadding: 2.5 },
+    alternateRowStyles: { fillColor: colors.gray50 },
     columnStyles: {
-      0: { cellWidth: 20 },
-      1: { cellWidth: 22 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 25 },
+      0: { cellWidth: 18 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 22 },
       4: { cellWidth: 18 },
-      5: { cellWidth: 22 },
+      5: { cellWidth: 20 },
       6: { cellWidth: 20 },
       7: { cellWidth: 15 },
       8: { cellWidth: 15 },
       9: { cellWidth: 15 },
       10: { cellWidth: 15 },
-      11: { cellWidth: 20 },
+      11: { cellWidth: 22 },
+    },
+    didParseCell: (data) => {
+      // Color code taxonomy status
+      if (data.column.index === 6 && data.section === "body") {
+        const value = data.cell.raw as string;
+        if (value === "Green") data.cell.styles.textColor = colors.success;
+        else if (value === "Transition") data.cell.styles.textColor = colors.warning;
+        else if (value === "Not Green") data.cell.styles.textColor = colors.danger;
+      }
+      // Color code carbon status
+      if (data.column.index === 11 && data.section === "body") {
+        const value = data.cell.raw as string;
+        if (value === "On Track") data.cell.styles.textColor = colors.success;
+        else if (value === "At Risk") data.cell.styles.textColor = colors.warning;
+        else if (value === "Off Track") data.cell.styles.textColor = colors.danger;
+      }
     },
   });
 
+  addPageFooter(doc);
   return doc;
 };
 
@@ -243,63 +406,108 @@ export const generateCarbonReportPDF = () => {
   const stats = calculatePortfolioStats();
   const pageWidth = doc.internal.pageSize.getWidth();
 
-  // Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 35, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text("Carbon & Net Zero Summary", 14, 20);
-  doc.setFontSize(10);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28);
+  // Cover Page
+  drawCoverPage(doc, "Carbon & Net Zero", "Emissions Tracking & Progress Report");
 
-  // Summary
-  doc.setTextColor(...textColor);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Emissions Overview", 14, 50);
+  // Page 2 - Summary
+  doc.addPage();
+  addPageHeader(doc, "Emissions Overview", 2);
 
-  // Carbon breakdown table
+  // Carbon KPIs
+  const carbonKPIs = [
+    { label: "Total Emissions", value: `${(stats.carbonSummary.total / 1000).toFixed(1)}k`, sub: "tCO₂e" },
+    { label: "Scope 1", value: `${(stats.carbonSummary.scope1 / 1000).toFixed(1)}k`, sub: "Direct" },
+    { label: "Scope 2", value: `${(stats.carbonSummary.scope2 / 1000).toFixed(1)}k`, sub: "Energy" },
+    { label: "Scope 3", value: `${(stats.carbonSummary.scope3 / 1000).toFixed(1)}k`, sub: "Indirect" },
+  ];
+
+  const cardWidth = (pageWidth - 38) / 4;
+  carbonKPIs.forEach((kpi, i) => {
+    const x = 14 + i * (cardWidth + 3);
+    
+    doc.setFillColor(...colors.gray50);
+    doc.roundedRect(x, 32, cardWidth, 35, 3, 3, "F");
+    
+    doc.setFillColor(...colors.accent);
+    doc.roundedRect(x, 32, cardWidth, 4, 3, 3, "F");
+    doc.setFillColor(...colors.gray50);
+    doc.rect(x, 34, cardWidth, 4, "F");
+
+    doc.setFontSize(8);
+    doc.setTextColor(...colors.textLight);
+    doc.text(kpi.label, x + 8, 44);
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...colors.primary);
+    doc.text(kpi.value, x + 8, 57);
+
+    doc.setFontSize(7);
+    doc.setTextColor(...colors.textLight);
+    doc.text(kpi.sub, x + 8, 63);
+  });
+
+  // Net Zero Targets Section
+  let currentY = drawSectionHeader(doc, "Net Zero Commitments", 82);
+
   autoTable(doc, {
-    startY: 55,
-    head: [["Metric", "Value", "Notes"]],
+    startY: currentY,
+    head: [["Target", "Year", "Reduction", "Status", "Notes"]],
     body: [
-      ["Total Emissions", `${stats.carbonSummary.total.toLocaleString()} tCO₂e`, "Portfolio total"],
-      ["Scope 1 (Direct)", `${stats.carbonSummary.scope1.toLocaleString()} tCO₂e`, "Direct emissions from operations"],
-      ["Scope 2 (Energy)", `${stats.carbonSummary.scope2.toLocaleString()} tCO₂e`, "Indirect from purchased energy"],
-      ["Scope 3 (Indirect)", `${stats.carbonSummary.scope3.toLocaleString()} tCO₂e`, "Value chain emissions"],
-      ["Net Zero Target", "2050", "Portfolio-wide commitment"],
-      ["Interim Target", "40% reduction by 2030", "From 2020 baseline"],
+      ["Interim Target", "2030", "40%", "In Progress", "From 2020 baseline"],
+      ["Net Zero Target", "2050", "100%", "Committed", "Portfolio-wide commitment"],
+      ["Science-Based", "2035", "55%", "Planned", "Aligned with SBTi pathway"],
     ],
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-    styles: { fontSize: 10 },
-    margin: { left: 14 },
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white,
+      fontStyle: "bold",
+      fontSize: 9,
+      cellPadding: 4,
+    },
+    bodyStyles: { fontSize: 9, cellPadding: 4 },
+    alternateRowStyles: { fillColor: colors.gray50 },
+    margin: { left: 14, right: 14 },
     tableWidth: pageWidth - 28,
   });
 
-  // Project carbon data
-  const projectY = doc.lastAutoTable.finalY + 15;
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Project Carbon Performance", 14, projectY);
+  // Project Carbon Performance
+  currentY = doc.lastAutoTable.finalY + 15;
+  currentY = drawSectionHeader(doc, "Project Carbon Performance", currentY);
 
   autoTable(doc, {
-    startY: projectY + 5,
+    startY: currentY,
     head: [["Project", "Sector", "Total (tCO₂e)", "Target Year", "Progress", "Status"]],
-    body: projects.slice(0, 12).map((p) => [
-      p.enterpriseName.slice(0, 20),
+    body: projects.slice(0, 15).map((p) => [
+      p.enterpriseName.length > 22 ? p.enterpriseName.slice(0, 22) + "..." : p.enterpriseName,
       p.sector,
       p.totalEmissions.toLocaleString(),
       p.targetYear.toString(),
       `${p.currentProgress}%`,
       p.carbonStatus,
     ]),
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-    styles: { fontSize: 8 },
-    margin: { left: 14 },
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white,
+      fontStyle: "bold",
+      fontSize: 8,
+      cellPadding: 3,
+    },
+    bodyStyles: { fontSize: 8, cellPadding: 3 },
+    alternateRowStyles: { fillColor: colors.gray50 },
+    margin: { left: 14, right: 14 },
     tableWidth: pageWidth - 28,
+    didParseCell: (data) => {
+      if (data.column.index === 5 && data.section === "body") {
+        const value = data.cell.raw as string;
+        if (value === "On Track") data.cell.styles.textColor = colors.success;
+        else if (value === "At Risk") data.cell.styles.textColor = colors.warning;
+        else if (value === "Off Track") data.cell.styles.textColor = colors.danger;
+      }
+    },
   });
 
+  addPageFooter(doc);
   return doc;
 };
 
@@ -308,59 +516,116 @@ export const generateTaxonomyReportPDF = () => {
   const stats = calculatePortfolioStats();
   const pageWidth = doc.internal.pageSize.getWidth();
 
-  // Header
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 35, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text("Green Taxonomy Report", 14, 20);
-  doc.setFontSize(10);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 28);
+  // Cover Page
+  drawCoverPage(doc, "Green Taxonomy", "Classification & Alignment Report");
 
-  // Classification Summary
-  doc.setTextColor(...textColor);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Classification Summary", 14, 50);
+  // Page 2 - Summary
+  doc.addPage();
+  addPageHeader(doc, "Taxonomy Classification", 2);
 
-  autoTable(doc, {
-    startY: 55,
-    head: [["Classification", "Count", "Percentage", "Portfolio Value"]],
-    body: [
-      ["Green", stats.greenTaxonomy.green.toString(), `${stats.greenTaxonomy.greenPercentage}%`, `${stats.greenTaxonomy.greenPercentageByValue}% of value`],
-      ["Transition", stats.greenTaxonomy.transition.toString(), `${stats.greenTaxonomy.transitionPercentage}%`, "Progressing"],
-      ["Not Green", stats.greenTaxonomy.notGreen.toString(), `${stats.greenTaxonomy.notGreenPercentage}%`, "Action Required"],
-    ],
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-    styles: { fontSize: 10 },
-    margin: { left: 14 },
-    tableWidth: pageWidth - 28,
+  // Classification Summary KPIs
+  const taxKPIs = [
+    { label: "Green", value: stats.greenTaxonomy.green.toString(), pct: `${stats.greenTaxonomy.greenPercentage}%`, color: colors.success },
+    { label: "Transition", value: stats.greenTaxonomy.transition.toString(), pct: `${stats.greenTaxonomy.transitionPercentage}%`, color: colors.warning },
+    { label: "Not Green", value: stats.greenTaxonomy.notGreen.toString(), pct: `${stats.greenTaxonomy.notGreenPercentage}%`, color: colors.danger },
+    { label: "Total", value: stats.totalProjects.toString(), pct: "100%", color: colors.primary },
+  ];
+
+  const cardWidth = (pageWidth - 38) / 4;
+  taxKPIs.forEach((kpi, i) => {
+    const x = 14 + i * (cardWidth + 3);
+    
+    doc.setFillColor(...colors.gray50);
+    doc.roundedRect(x, 32, cardWidth, 38, 3, 3, "F");
+    
+    doc.setFillColor(...kpi.color);
+    doc.roundedRect(x, 32, cardWidth, 4, 3, 3, "F");
+    doc.setFillColor(...colors.gray50);
+    doc.rect(x, 34, cardWidth, 4, "F");
+
+    doc.setFontSize(8);
+    doc.setTextColor(...colors.textLight);
+    doc.text(kpi.label, x + 8, 46);
+
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...kpi.color);
+    doc.text(kpi.value, x + 8, 60);
+
+    doc.setFontSize(9);
+    doc.setTextColor(...colors.textLight);
+    doc.text(kpi.pct, x + 8, 68);
   });
 
-  // Projects by classification
-  const projectY = doc.lastAutoTable.finalY + 15;
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Project Classifications", 14, projectY);
+  // Classification Criteria
+  let currentY = drawSectionHeader(doc, "Classification Summary", 85);
 
   autoTable(doc, {
-    startY: projectY + 5,
+    startY: currentY,
+    head: [["Classification", "Count", "Portfolio %", "Value %", "Criteria"]],
+    body: [
+      ["Green", stats.greenTaxonomy.green.toString(), `${stats.greenTaxonomy.greenPercentage}%`, `${stats.greenTaxonomy.greenPercentageByValue}%`, "Meets all environmental objectives"],
+      ["Transition", stats.greenTaxonomy.transition.toString(), `${stats.greenTaxonomy.transitionPercentage}%`, "-", "Progressing towards green criteria"],
+      ["Not Green", stats.greenTaxonomy.notGreen.toString(), `${stats.greenTaxonomy.notGreenPercentage}%`, "-", "Does not meet current criteria"],
+    ],
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white,
+      fontStyle: "bold",
+      fontSize: 9,
+      cellPadding: 4,
+    },
+    bodyStyles: { fontSize: 9, cellPadding: 4 },
+    alternateRowStyles: { fillColor: colors.gray50 },
+    margin: { left: 14, right: 14 },
+    tableWidth: pageWidth - 28,
+    didParseCell: (data) => {
+      if (data.column.index === 0 && data.section === "body") {
+        const value = data.cell.raw as string;
+        if (value === "Green") data.cell.styles.textColor = colors.success;
+        else if (value === "Transition") data.cell.styles.textColor = colors.warning;
+        else if (value === "Not Green") data.cell.styles.textColor = colors.danger;
+      }
+    },
+  });
+
+  // Project Classifications
+  currentY = doc.lastAutoTable.finalY + 15;
+  currentY = drawSectionHeader(doc, "Project Classifications", currentY);
+
+  autoTable(doc, {
+    startY: currentY,
     head: [["Project ID", "Enterprise", "Sector", "Classification", "Evidence", "Last Updated"]],
-    body: projects.slice(0, 15).map((p) => [
+    body: projects.slice(0, 18).map((p) => [
       p.projectId,
-      p.enterpriseName.slice(0, 20),
+      p.enterpriseName.length > 20 ? p.enterpriseName.slice(0, 20) + "..." : p.enterpriseName,
       p.sector,
       p.taxonomyStatus,
       p.evidenceStatus,
       p.lastUpdated,
     ]),
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255] },
-    styles: { fontSize: 8 },
-    margin: { left: 14 },
+    headStyles: { 
+      fillColor: colors.primary, 
+      textColor: colors.white,
+      fontStyle: "bold",
+      fontSize: 8,
+      cellPadding: 3,
+    },
+    bodyStyles: { fontSize: 8, cellPadding: 3 },
+    alternateRowStyles: { fillColor: colors.gray50 },
+    margin: { left: 14, right: 14 },
     tableWidth: pageWidth - 28,
+    didParseCell: (data) => {
+      if (data.column.index === 3 && data.section === "body") {
+        const value = data.cell.raw as string;
+        if (value === "Green") data.cell.styles.textColor = colors.success;
+        else if (value === "Transition") data.cell.styles.textColor = colors.warning;
+        else if (value === "Not Green") data.cell.styles.textColor = colors.danger;
+      }
+    },
   });
 
+  addPageFooter(doc);
   return doc;
 };
 
