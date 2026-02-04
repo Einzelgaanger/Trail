@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["trail.vgg.app"],
     hmr: {
       overlay: false,
     },
@@ -18,6 +19,7 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: [
       "mytrail-anr0.onrender.com",
       ".onrender.com", // Allow all Render subdomains
+      "trail.vgg.app",
     ],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
