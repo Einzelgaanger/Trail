@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import esgSolarImage from "@/assets/esg-solar-panels.jpg";
+import esgWindImage from "@/assets/esg-wind-turbines.jpg";
+import esgForestImage from "@/assets/esg-forest.jpg";
 
 // Mock ESG Data
 const mockESGData = {
@@ -241,32 +244,35 @@ export default function Dashboard() {
             </h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="p-4 bg-primary/5 hover:bg-primary/10 rounded-xl border border-primary/20 transition-all group">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <TrendingUp className="w-6 h-6 text-primary" />
+            <button className="relative overflow-hidden p-4 rounded-xl border border-primary/20 transition-all group h-32">
+              <img src={esgSolarImage} alt="Solar Energy" className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity" />
+              <div className="relative flex flex-col items-center justify-center gap-2 h-full">
+                <div className="w-12 h-12 rounded-lg bg-primary/80 flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium">View Analytics</span>
               </div>
             </button>
-            <button className="p-4 bg-success/5 hover:bg-success/10 rounded-xl border border-success/20 transition-all group">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
-                  <Leaf className="w-6 h-6 text-success" />
+            <button className="relative overflow-hidden p-4 rounded-xl border border-success/20 transition-all group h-32">
+              <img src={esgForestImage} alt="Green Forest" className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity" />
+              <div className="relative flex flex-col items-center justify-center gap-2 h-full">
+                <div className="w-12 h-12 rounded-lg bg-success/80 flex items-center justify-center">
+                  <Leaf className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium">Green Taxonomy</span>
               </div>
             </button>
-            <button className="p-4 bg-accent/5 hover:bg-accent/10 rounded-xl border border-accent/20 transition-all group">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                  <Flame className="w-6 h-6 text-accent" />
+            <button className="relative overflow-hidden p-4 rounded-xl border border-accent/20 transition-all group h-32">
+              <img src={esgWindImage} alt="Wind Energy" className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity" />
+              <div className="relative flex flex-col items-center justify-center gap-2 h-full">
+                <div className="w-12 h-12 rounded-lg bg-accent/80 flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-sm font-medium">Carbon Report</span>
               </div>
             </button>
-            <button className="p-4 bg-muted hover:bg-muted/80 rounded-xl border border-border transition-all group">
-              <div className="flex flex-col items-center gap-2">
+            <button className="p-4 bg-muted hover:bg-muted/80 rounded-xl border border-border transition-all group h-32">
+              <div className="flex flex-col items-center justify-center gap-2 h-full">
                 <div className="w-12 h-12 rounded-lg bg-background flex items-center justify-center">
                   <ArrowUpRight className="w-6 h-6 text-muted-foreground" />
                 </div>
