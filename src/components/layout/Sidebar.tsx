@@ -12,7 +12,6 @@ import {
   ChevronDown,
   ChevronRight,
   Leaf,
-  TrendingUp,
   Users,
   LogOut,
   HelpCircle,
@@ -98,10 +97,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-sidebar-border">
         <Link to="/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-sidebar-foreground tracking-tight">
+          <span className="text-2xl font-bold text-sidebar-foreground tracking-tight">
             Trail
           </span>
         </Link>
@@ -138,7 +134,7 @@ export function Sidebar() {
                           key={child.href}
                           to={child.href}
                           className={cn(
-                            "sidebar-link text-sm py-2",
+                            "sidebar-link py-2",
                             isActive(child.href) && "active"
                           )}
                         >
@@ -194,10 +190,10 @@ export function Sidebar() {
                 <Users className="w-4 h-4 text-sidebar-primary" />
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                <p className="text-base font-medium text-sidebar-foreground truncate">
                   Garden Ventures
                 </p>
-                <p className="text-xs text-sidebar-muted truncate">Administrator</p>
+                <p className="text-sm text-sidebar-muted truncate">Administrator</p>
               </div>
               <ChevronDown className="w-4 h-4 text-sidebar-muted" />
             </button>
