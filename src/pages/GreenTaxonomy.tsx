@@ -23,43 +23,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-interface TaxonomyProject {
-  id: string;
-  projectId: string;
-  name: string;
-  sector: string;
-  classification: "Green" | "Transition" | "Not Green";
-  evidenceStatus: "Provided" | "Missing";
-  lastUpdated: string;
-  evidenceFile?: string;
-}
-
-const mockProjects: TaxonomyProject[] = [
-  { id: "1", projectId: "DBN-2024-001", name: "Lagos Solar Farm Development", sector: "Renewable Energy", classification: "Green", evidenceStatus: "Provided", lastUpdated: "2025-01-15", evidenceFile: "solar_farm_evidence.pdf" },
-  { id: "2", projectId: "DBN-2024-004", name: "Rivers State Water Treatment", sector: "Water & Sanitation", classification: "Green", evidenceStatus: "Provided", lastUpdated: "2025-01-12", evidenceFile: "water_treatment_docs.pdf" },
-  { id: "3", projectId: "DBN-2024-003", name: "Abuja Green Building Initiative", sector: "Real Estate", classification: "Green", evidenceStatus: "Missing", lastUpdated: "2025-01-10" },
-  { id: "4", projectId: "DBN-2024-002", name: "Kano Agricultural Expansion", sector: "Agriculture", classification: "Transition", evidenceStatus: "Provided", lastUpdated: "2025-01-08", evidenceFile: "agri_assessment.pdf" },
-  { id: "5", projectId: "DBN-2023-018", name: "Ogun Manufacturing Hub", sector: "Manufacturing", classification: "Not Green", evidenceStatus: "Provided", lastUpdated: "2025-01-05", evidenceFile: "manufacturing_report.pdf" },
-  { id: "6", projectId: "DBN-2024-006", name: "Kaduna Wind Farm Project", sector: "Renewable Energy", classification: "Green", evidenceStatus: "Missing", lastUpdated: "2024-12-28" },
-  { id: "7", projectId: "DBN-2024-007", name: "Enugu Clean Transport", sector: "Transportation", classification: "Transition", evidenceStatus: "Missing", lastUpdated: "2024-12-20" },
-  { id: "8", projectId: "DBN-2024-005", name: "Delta Oil Remediation", sector: "Environmental Services", classification: "Not Green", evidenceStatus: "Provided", lastUpdated: "2024-12-15", evidenceFile: "remediation_evidence.pdf" },
-];
-
-const taxonomyRules = [
-  "Climate Change Mitigation",
-  "Climate Change Adaptation", 
-  "Water & Marine Resources Protection",
-  "Circular Economy Transition",
-  "Pollution Prevention & Control",
-  "Biodiversity & Ecosystems Protection",
-  "Do No Significant Harm (DNSH)",
-  "Minimum Social Safeguards",
-  "Technical Screening Criteria",
-  "Substantial Contribution",
-  "Environmental Impact Assessment",
-  "Social Impact Assessment",
-];
+import { projects, taxonomyRules } from "@/data/esgData";
+import { exportPDF } from "@/lib/pdfExport";
 
 const getClassificationColor = (classification: string) => {
   switch (classification) {
@@ -90,23 +55,23 @@ export default function GreenTaxonomy() {
   const [classificationFilter, setClassificationFilter] = useState<string>("all");
 
   const filteredProjects = useMemo(() => {
-    return mockProjects.filter((project) => {
-      const matchesSearch = project.name.toLowerCase().includes(searchText.toLowerCase()) ||
+    return projects.filter((project) => {
+      const matchesSearch = project.enterpriseName.toLowerCase().includes(searchText.toLowerCase()) ||
         project.projectId.toLowerCase().includes(searchText.toLowerCase()) ||
         project.sector.toLowerCase().includes(searchText.toLowerCase());
-      const matchesClassification = classificationFilter === "all" || project.classification === classificationFilter;
+      const matchesClassification = classificationFilter === "all" || project.taxonomyStatus === classificationFilter;
       return matchesSearch && matchesClassification;
     });
   }, [searchText, classificationFilter]);
 
   // Calculate overview stats
   const overviewStats = useMemo(() => {
-    const total = mockProjects.length;
-    const green = mockProjects.filter(p => p.classification === "Green").length;
-    const transition = mockProjects.filter(p => p.classification === "Transition").length;
-    const notGreen = mockProjects.filter(p => p.classification === "Not Green").length;
-    const evidenceProvided = mockProjects.filter(p => p.evidenceStatus === "Provided").length;
-    const evidenceMissing = mockProjects.filter(p => p.evidenceStatus === "Missing").length;
+    const total = projects.length;
+    const green = projects.filter(p => p.taxonomyStatus === "Green").length;
+    const transition = projects.filter(p => p.taxonomyStatus === "Transition").length;
+    const notGreen = projects.filter(p => p.taxonomyStatus === "Not Green").length;
+    const evidenceProvided = projects.filter(p => p.evidenceStatus === "Provided").length;
+    const evidenceMissing = projects.filter(p => p.evidenceStatus === "Missing").length;
     return {
       total,
       green,
@@ -124,8 +89,8 @@ export default function GreenTaxonomy() {
     const date = new Date().toISOString().split('T')[0];
     const filename = `DBN_Green_Taxonomy_Report_${date}.csv`;
     
-    const headers = ["Project ID", "Project Name", "Sector", "Classification", "Evidence Status", "Last Updated"];
-    const rows = filteredProjects.map(p => [p.projectId, p.name, p.sector, p.classification, p.evidenceStatus, p.lastUpdated]);
+    const headers = ["Project ID", "Enterprise", "Sector", "Classification", "Evidence Status", "Last Updated"];
+    const rows = filteredProjects.map(p => [p.projectId, p.enterpriseName, p.sector, p.taxonomyStatus, p.evidenceStatus, p.lastUpdated]);
 
     const csvContent = [
       `DBN Green Taxonomy Report`,
@@ -140,8 +105,8 @@ export default function GreenTaxonomy() {
       `Provided: ${overviewStats.evidenceProvided}`,
       `Missing: ${overviewStats.evidenceMissing}`,
       ``,
-      `Taxonomy Rules:`,
-      ...taxonomyRules.map((rule, i) => `${i+1}. ${rule}`),
+      `Classification Criteria:`,
+      ...taxonomyRules.map((rule, i) => `${i+1}. ${rule.category}: ${rule.criteria}`),
       ``,
       headers.join(","),
       ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
@@ -155,18 +120,7 @@ export default function GreenTaxonomy() {
     link.click();
   };
 
-  const exportToPDF = () => {
-    // Simulated PDF export - in real app would use jsPDF
-    alert("PDF export initiated. In production, this would generate a formatted PDF report.");
-  };
-
-  const exportBoth = () => {
-    exportToCSV();
-    setTimeout(() => exportToPDF(), 500);
-  };
-
   const handleUploadEvidence = (projectId: string) => {
-    // Simulated upload - would trigger file picker in real app
     alert(`Upload evidence for project ${projectId}. File picker would open here.`);
   };
 
@@ -178,7 +132,7 @@ export default function GreenTaxonomy() {
           <div>
             <h1 className="view-title">Green Taxonomy</h1>
             <p className="text-muted-foreground mt-1">
-              View and manage green taxonomy classifications for projects
+              View and manage green taxonomy classifications
             </p>
           </div>
           <DropdownMenu>
@@ -194,13 +148,9 @@ export default function GreenTaxonomy() {
                 <FileSpreadsheet className="w-4 h-4" />
                 Export as Excel (.csv)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToPDF} className="gap-2">
+              <DropdownMenuItem onClick={() => exportPDF("taxonomy")} className="gap-2">
                 <File className="w-4 h-4" />
-                Export as PDF (.pdf)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportBoth} className="gap-2">
-                <Download className="w-4 h-4" />
-                Export Both Formats
+                Export as PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -243,7 +193,7 @@ export default function GreenTaxonomy() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by Project ID, Name, Sector..."
+              placeholder="Search by Project ID, Enterprise, Sector..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="pl-9"
@@ -266,7 +216,7 @@ export default function GreenTaxonomy() {
           </div>
         </div>
 
-        {/* Classification Table per Documentation */}
+        {/* Classification Table */}
         <div className="dashboard-card">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Leaf className="w-5 h-5 text-success" />
@@ -277,7 +227,7 @@ export default function GreenTaxonomy() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 text-sm font-medium text-muted-foreground sticky left-0 bg-card">Project ID</th>
-                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">Project Name</th>
+                  <th className="text-left py-3 text-sm font-medium text-muted-foreground">Enterprise</th>
                   <th className="text-left py-3 text-sm font-medium text-muted-foreground">Sector</th>
                   <th className="text-center py-3 text-sm font-medium text-muted-foreground">Classification</th>
                   <th className="text-center py-3 text-sm font-medium text-muted-foreground">Evidence Status</th>
@@ -286,18 +236,18 @@ export default function GreenTaxonomy() {
                 </tr>
               </thead>
               <tbody>
-                {filteredProjects.map((project) => (
-                  <tr key={project.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                {filteredProjects.slice(0, 20).map((project) => (
+                  <tr key={project.projectId} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="py-3 font-mono text-sm sticky left-0 bg-card">{project.projectId}</td>
-                    <td className="py-3 font-medium">{project.name}</td>
+                    <td className="py-3 font-medium">{project.enterpriseName}</td>
                     <td className="py-3 text-sm text-muted-foreground">{project.sector}</td>
                     <td className="py-3 text-center">
                       <span className={cn(
                         "inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium",
-                        getClassificationColor(project.classification)
+                        getClassificationColor(project.taxonomyStatus)
                       )}>
-                        {getClassificationIcon(project.classification)}
-                        {project.classification}
+                        {getClassificationIcon(project.taxonomyStatus)}
+                        {project.taxonomyStatus}
                       </span>
                     </td>
                     <td className="py-3 text-center">
@@ -320,12 +270,6 @@ export default function GreenTaxonomy() {
                           <Upload className="w-3 h-3" />
                           {project.evidenceStatus === "Provided" ? "Replace" : "Upload"}
                         </Button>
-                        {project.evidenceFile && (
-                          <Button variant="ghost" size="sm" className="gap-1">
-                            <FileText className="w-3 h-3" />
-                            View
-                          </Button>
-                        )}
                         <Button variant="outline" size="sm">
                           Reclassify
                         </Button>
@@ -336,6 +280,11 @@ export default function GreenTaxonomy() {
               </tbody>
             </table>
           </div>
+          {filteredProjects.length > 20 && (
+            <p className="text-sm text-muted-foreground mt-4 text-center">
+              Showing 20 of {filteredProjects.length} projects
+            </p>
+          )}
         </div>
 
         {/* Taxonomy Rules Reference */}
@@ -344,13 +293,19 @@ export default function GreenTaxonomy() {
             <FileText className="w-5 h-5 text-primary" />
             Taxonomy Classification Criteria
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {taxonomyRules.map((rule, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                  {idx + 1}
+              <div key={idx} className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-sm">{rule.category}</h4>
+                    <p className="text-xs text-muted-foreground mt-1">{rule.criteria}</p>
+                    <p className="text-xs text-primary mt-2">Evidence: {rule.evidenceRequired}</p>
+                  </div>
                 </div>
-                <span className="text-sm">{rule}</span>
               </div>
             ))}
           </div>

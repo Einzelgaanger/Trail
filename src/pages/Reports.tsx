@@ -20,24 +20,28 @@ import {
   Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { exportPDF } from "@/lib/pdfExport";
+import { projects, calculatePortfolioStats, formatCurrencyShort } from "@/data/esgData";
 
 // 6 Report Types per Documentation
 const reportCards = [
   { 
-    id: "esg-portfolio", 
+    id: "portfolio", 
     name: "DBN ESG Portfolio Pack", 
-    description: "Comprehensive ESG portfolio report",
+    description: "Comprehensive ESG portfolio summary with KPIs",
     formats: ["PDF", "Excel"],
     icon: FileText,
-    color: "#1354D3"
+    color: "#196933",
+    pdfType: "portfolio" as const
   },
   { 
     id: "pfi-compliance", 
     name: "PFI Compliance Summary", 
-    description: "Summary of all PFI submissions",
+    description: "Summary of all PFI submissions and status",
     formats: ["Excel", "PDF"],
     icon: FileSpreadsheet,
-    color: "#27BE63"
+    color: "#27BE63",
+    pdfType: "projects" as const
   },
   { 
     id: "carbon-summary", 
@@ -45,15 +49,17 @@ const reportCards = [
     description: "Portfolio and project-level carbon emissions",
     formats: ["PDF", "Excel"],
     icon: Flame,
-    color: "#FF6B6B"
+    color: "#D48F05",
+    pdfType: "carbon" as const
   },
   { 
     id: "taxonomy", 
     name: "Green Taxonomy Report", 
     description: "Complete taxonomy classifications",
-    formats: ["PDF", "Word"],
+    formats: ["PDF", "Excel"],
     icon: Leaf,
-    color: "#D66F0F"
+    color: "#196933",
+    pdfType: "taxonomy" as const
   },
   { 
     id: "data-quality", 
@@ -61,7 +67,8 @@ const reportCards = [
     description: "Data completeness scores and error logs",
     formats: ["Excel", "PDF"],
     icon: BarChart3,
-    color: "#4431B4"
+    color: "#4431B4",
+    pdfType: "portfolio" as const
   },
   { 
     id: "executive", 
@@ -69,7 +76,8 @@ const reportCards = [
     description: "High-level executive summary",
     formats: ["PDF", "PowerPoint"],
     icon: Shield,
-    color: "#1354D3"
+    color: "#196933",
+    pdfType: "portfolio" as const
   },
 ];
 
@@ -109,19 +117,92 @@ const getFormatIcon = (format: string) => {
 export default function Reports() {
   const [exportingStates, setExportingStates] = useState<Record<string, boolean>>({});
 
-  const handleExport = (reportId: string, format: string) => {
+  const handleExport = (reportId: string, format: string, pdfType?: "portfolio" | "projects" | "carbon" | "taxonomy") => {
     const key = `${reportId}-${format}`;
     setExportingStates(prev => ({ ...prev, [key]: true }));
     
-    // Simulate export delay
     setTimeout(() => {
       const date = new Date().toISOString().split('T')[0];
       const report = reportCards.find(r => r.id === reportId);
-      const filename = `DBN_${report?.name.replace(/\s+/g, '_')}_${date}.${format.toLowerCase() === 'excel' ? 'csv' : format.toLowerCase()}`;
       
-      // Simulated CSV export
-      if (format === "Excel") {
-        const csvContent = `Report: ${report?.name}\nGenerated: ${date}\n\nSample data would be here...`;
+      if (format === "PDF" && pdfType) {
+        // Generate real PDF using jsPDF
+        exportPDF(pdfType);
+      } else if (format === "Excel") {
+        // Generate CSV/Excel
+        const filename = `DBN_${report?.name.replace(/\s+/g, '_')}_${date}.csv`;
+        const stats = calculatePortfolioStats();
+        
+        let csvContent = "";
+        
+        if (reportId === "portfolio" || reportId === "executive") {
+          csvContent = [
+            `DBN ESG Portfolio Report`,
+            `Generated: ${date}`,
+            ``,
+            `Portfolio Summary`,
+            `Total Projects,${stats.totalProjects}`,
+            `Portfolio Value,₦${(stats.totalPortfolioValue / 1000000000).toFixed(2)}B`,
+            `ESG Completeness,${stats.avgEsgCompleteness}%`,
+            `Green Classification,${stats.greenTaxonomy.greenPercentage}%`,
+            ``,
+            `Carbon Summary`,
+            `Total Emissions,${stats.carbonSummary.total} tCO₂e`,
+            `Scope 1,${stats.carbonSummary.scope1} tCO₂e`,
+            `Scope 2,${stats.carbonSummary.scope2} tCO₂e`,
+            `Scope 3,${stats.carbonSummary.scope3} tCO₂e`,
+            ``,
+            `Project Details`,
+            `Project ID,PFI,Enterprise,Sector,State,Amount,Taxonomy,ESG %,Carbon Status`,
+            ...projects.map(p => 
+              `${p.projectId},${p.pfiName},${p.enterpriseName},${p.sector},${p.state},${formatCurrencyShort(p.loanAmount)},${p.taxonomyStatus},${p.esgCompleteness}%,${p.carbonStatus}`
+            )
+          ].join("\n");
+        } else if (reportId === "carbon-summary") {
+          csvContent = [
+            `DBN Carbon & Net Zero Report`,
+            `Generated: ${date}`,
+            ``,
+            `Carbon Summary`,
+            `Total Emissions,${stats.carbonSummary.total} tCO₂e`,
+            `Scope 1 (Direct),${stats.carbonSummary.scope1} tCO₂e`,
+            `Scope 2 (Energy),${stats.carbonSummary.scope2} tCO₂e`,
+            `Scope 3 (Indirect),${stats.carbonSummary.scope3} tCO₂e`,
+            ``,
+            `Project Carbon Data`,
+            `Project ID,Enterprise,Sector,Scope 1,Scope 2,Scope 3,Total,Target Year,Progress,Status`,
+            ...projects.map(p => 
+              `${p.projectId},${p.enterpriseName},${p.sector},${p.scope1},${p.scope2},${p.scope3},${p.totalEmissions},${p.targetYear},${p.currentProgress}%,${p.carbonStatus}`
+            )
+          ].join("\n");
+        } else if (reportId === "taxonomy") {
+          csvContent = [
+            `DBN Green Taxonomy Report`,
+            `Generated: ${date}`,
+            ``,
+            `Classification Summary`,
+            `Green,${stats.greenTaxonomy.green},${stats.greenTaxonomy.greenPercentage}%`,
+            `Transition,${stats.greenTaxonomy.transition},${stats.greenTaxonomy.transitionPercentage}%`,
+            `Not Green,${stats.greenTaxonomy.notGreen},${stats.greenTaxonomy.notGreenPercentage}%`,
+            ``,
+            `Project Classifications`,
+            `Project ID,Enterprise,Sector,Classification,Evidence Status,Last Updated`,
+            ...projects.map(p => 
+              `${p.projectId},${p.enterpriseName},${p.sector},${p.taxonomyStatus},${p.evidenceStatus},${p.lastUpdated}`
+            )
+          ].join("\n");
+        } else {
+          csvContent = [
+            `DBN ${report?.name} Report`,
+            `Generated: ${date}`,
+            ``,
+            `Project ID,PFI,Enterprise,Sector,State,Amount,Taxonomy,ESG %`,
+            ...projects.map(p => 
+              `${p.projectId},${p.pfiName},${p.enterpriseName},${p.sector},${p.state},${formatCurrencyShort(p.loanAmount)},${p.taxonomyStatus},${p.esgCompleteness}%`
+            )
+          ].join("\n");
+        }
+        
         const BOM = '\uFEFF';
         const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -129,16 +210,38 @@ export default function Reports() {
         link.download = filename;
         link.click();
       } else {
-        alert(`${format} export for "${report?.name}" initiated. In production, this would generate a ${format} file.`);
+        alert(`${format} export for "${report?.name}" initiated.`);
       }
       
       setExportingStates(prev => ({ ...prev, [key]: false }));
-    }, 1500);
+    }, 1000);
   };
 
   const handleQuickExport = (type: string) => {
-    const date = new Date().toISOString().split('T')[0];
-    alert(`Quick export: ${type} initiated. File would be generated as DBN_${type.replace(/\s+/g, '_')}_${date}`);
+    if (type === "Complete_Portfolio") {
+      exportPDF("portfolio");
+    } else if (type === "All_Project_Data") {
+      exportPDF("projects");
+    } else if (type === "Complete_Dataset") {
+      // Export all data as CSV
+      const date = new Date().toISOString().split('T')[0];
+      const csvContent = [
+        `DBN Complete Dataset Export`,
+        `Generated: ${date}`,
+        ``,
+        `Project ID,PFI ID,PFI Name,Sector,Enterprise,Size,City,State,Funding Type,Start Year,Loan Amount,ESG %,Reporting,Taxonomy,Evidence,Scope 1,Scope 2,Scope 3,Total CO2,Target Year,Progress,Carbon Status,Data Quality`,
+        ...projects.map(p => 
+          `${p.projectId},${p.pfiId},${p.pfiName},${p.sector},${p.enterpriseName},${p.enterpriseSize},${p.city},${p.state},${p.fundingType},${p.projectStartYear},${p.loanAmount},${p.esgCompleteness}%,${p.reportingStatus},${p.taxonomyStatus},${p.evidenceStatus},${p.scope1},${p.scope2},${p.scope3},${p.totalEmissions},${p.targetYear},${p.currentProgress}%,${p.carbonStatus},${p.dataQualityScore}%`
+        )
+      ].join("\n");
+      
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `DBN_Complete_Dataset_${date}.csv`;
+      link.click();
+    }
   };
 
   return (
@@ -149,7 +252,7 @@ export default function Reports() {
           <div>
             <h1 className="view-title">Reports</h1>
             <p className="text-muted-foreground mt-1">
-              Generate, view, and export various ESG reports
+              Generate, view, and export ESG reports
             </p>
           </div>
         </div>
@@ -182,7 +285,7 @@ export default function Reports() {
                         variant="outline"
                         size="sm"
                         className="gap-2"
-                        onClick={() => handleExport(report.id, format)}
+                        onClick={() => handleExport(report.id, format, report.pdfType)}
                         disabled={isExporting}
                       >
                         {isExporting ? (
@@ -206,11 +309,11 @@ export default function Reports() {
           <div className="flex flex-wrap gap-3">
             <Button onClick={() => handleQuickExport("Complete_Portfolio")} className="gap-2">
               <FileText className="w-4 h-4" />
-              Export Complete Portfolio (PDF)
+              Export Portfolio Pack (PDF)
             </Button>
             <Button onClick={() => handleQuickExport("All_Project_Data")} variant="outline" className="gap-2">
               <FileSpreadsheet className="w-4 h-4" />
-              Export All Project Data (Excel)
+              Export Project Drilldown (PDF)
             </Button>
             <Button onClick={() => handleQuickExport("Complete_Dataset")} variant="outline" className="gap-2">
               <Download className="w-4 h-4" />
