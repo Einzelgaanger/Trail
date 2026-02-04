@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import esgWindImage from "@/assets/esg-wind-turbines.jpg";
 
 // Mock data for ESG Analytics
 const keyTrends = [
@@ -74,18 +75,22 @@ export default function ESGAnalytics() {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="view-title">ESG Analytics</h1>
-            <p className="text-muted-foreground mt-1">
-              Comprehensive analytics and insights into ESG performance
-            </p>
+        {/* Hero Banner */}
+        <div className="relative overflow-hidden rounded-xl h-40 mb-2">
+          <img src={esgWindImage} alt="Wind Turbines" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/50" />
+          <div className="relative z-10 flex items-center justify-between h-full px-6">
+            <div className="text-white">
+              <h1 className="text-2xl font-bold">ESG Analytics</h1>
+              <p className="text-white/80 mt-1">
+                Comprehensive analytics and insights into ESG performance
+              </p>
+            </div>
+            <Button variant="secondary" className="gap-2">
+              <Download className="w-4 h-4" />
+              Export Report
+            </Button>
           </div>
-          <Button variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
-            Export Report
-          </Button>
         </div>
 
         {/* Key Trends */}

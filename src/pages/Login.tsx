@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { TrendingUp, Mail, Lock, Building2, User, Eye, EyeOff, CheckCircle, Shield, BarChart3, Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import esgHeroImage from "@/assets/esg-dashboard.jpg";
+import esgHeroImage from "@/assets/esg-solar-panels.jpg";
 // Hardcoded credentials
 const VALID_CREDENTIALS = {
   organisation: { email: "admin@trail.com", password: "admin123" },
