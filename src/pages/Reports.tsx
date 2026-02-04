@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   FileText, 
   Download, 
@@ -17,105 +18,117 @@ import {
   Shield,
   FileSpreadsheet,
   Presentation,
-  Loader2
+  Loader2,
+  Search,
+  Filter,
+  Sparkles,
+  TrendingUp,
+  ArrowRight,
+  FolderOpen,
+  Plus,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportPDF } from "@/lib/pdfExport";
 import { projects, calculatePortfolioStats, formatCurrencyShort } from "@/data/esgData";
+import { Badge } from "@/components/ui/badge";
 
 // 6 Report Types per Documentation
 const reportCards = [
   { 
     id: "portfolio", 
-    name: "DBN ESG Portfolio Pack", 
-    description: "Comprehensive ESG portfolio summary with KPIs",
+    name: "ESG Portfolio Pack", 
+    description: "Comprehensive ESG portfolio summary with KPIs, taxonomy breakdown, and carbon overview",
     formats: ["PDF", "Excel"],
     icon: FileText,
-    color: "#196933",
-    pdfType: "portfolio" as const
+    gradient: "from-primary to-primary/80",
+    pdfType: "portfolio" as const,
+    badge: "Popular"
   },
   { 
     id: "pfi-compliance", 
     name: "PFI Compliance Summary", 
-    description: "Summary of all PFI submissions and status",
+    description: "Detailed summary of all PFI submissions, validation status, and compliance metrics",
     formats: ["Excel", "PDF"],
     icon: FileSpreadsheet,
-    color: "#27BE63",
+    gradient: "from-success to-success/80",
     pdfType: "projects" as const
   },
   { 
     id: "carbon-summary", 
-    name: "Carbon & Net Zero Summary", 
-    description: "Portfolio and project-level carbon emissions",
+    name: "Carbon & Net Zero", 
+    description: "Portfolio and project-level carbon emissions with Scope 1, 2, 3 breakdown",
     formats: ["PDF", "Excel"],
     icon: Flame,
-    color: "#D48F05",
+    gradient: "from-accent to-accent/80",
     pdfType: "carbon" as const
   },
   { 
     id: "taxonomy", 
     name: "Green Taxonomy Report", 
-    description: "Complete taxonomy classifications",
+    description: "Complete taxonomy classifications, evidence status, and alignment criteria",
     formats: ["PDF", "Excel"],
     icon: Leaf,
-    color: "#196933",
+    gradient: "from-primary to-success",
     pdfType: "taxonomy" as const
   },
   { 
     id: "data-quality", 
-    name: "ESG Data Quality Report", 
-    description: "Data completeness scores and error logs",
+    name: "Data Quality Report", 
+    description: "Data completeness scores, error logs, and validation summaries",
     formats: ["Excel", "PDF"],
     icon: BarChart3,
-    color: "#4431B4",
+    gradient: "from-[#4431B4] to-[#6366f1]",
     pdfType: "portfolio" as const
   },
   { 
     id: "executive", 
-    name: "Executive Dashboard Summary", 
-    description: "High-level executive summary",
+    name: "Executive Summary", 
+    description: "High-level dashboard summary for executive presentations",
     formats: ["PDF", "PowerPoint"],
     icon: Shield,
-    color: "#196933",
-    pdfType: "portfolio" as const
+    gradient: "from-primary to-accent",
+    pdfType: "portfolio" as const,
+    badge: "New"
   },
 ];
 
 const generatedReports = [
-  { id: "1", name: "Q4 2024 ESG Performance Report", type: "ESG Portfolio Pack", date: "2025-01-15", generatedBy: "Admin User", status: "Ready" },
-  { id: "2", name: "Annual Portfolio Overview 2024", type: "PFI Compliance Summary", date: "2025-01-10", generatedBy: "Admin User", status: "Ready" },
-  { id: "3", name: "Green Taxonomy Assessment Report", type: "Green Taxonomy Report", date: "2025-01-08", generatedBy: "John Doe", status: "Ready" },
-  { id: "4", name: "Carbon Emissions Q4 2024", type: "Carbon & Net Zero Summary", date: "2025-01-05", generatedBy: "Jane Smith", status: "Generating" },
-  { id: "5", name: "Data Quality Audit Report", type: "ESG Data Quality Report", date: "2024-12-20", generatedBy: "Admin User", status: "Ready" },
+  { id: "1", name: "Q4 2024 ESG Performance Report", type: "ESG Portfolio Pack", date: "2025-01-15", generatedBy: "Admin User", status: "Ready", size: "2.4 MB" },
+  { id: "2", name: "Annual Portfolio Overview 2024", type: "PFI Compliance Summary", date: "2025-01-10", generatedBy: "Admin User", status: "Ready", size: "1.8 MB" },
+  { id: "3", name: "Green Taxonomy Assessment Report", type: "Green Taxonomy Report", date: "2025-01-08", generatedBy: "John Doe", status: "Ready", size: "3.1 MB" },
+  { id: "4", name: "Carbon Emissions Q4 2024", type: "Carbon & Net Zero", date: "2025-01-05", generatedBy: "Jane Smith", status: "Generating", size: "-" },
+  { id: "5", name: "Data Quality Audit Report", type: "Data Quality Report", date: "2024-12-20", generatedBy: "Admin User", status: "Ready", size: "892 KB" },
 ];
 
 const scheduledReports = [
-  { name: "Monthly ESG Summary", type: "ESG Portfolio Pack", frequency: "Monthly", nextRun: "2025-02-01", recipients: 3 },
-  { name: "Weekly PFI Update", type: "PFI Compliance Summary", frequency: "Weekly", nextRun: "2025-01-20", recipients: 5 },
-  { name: "Quarterly Carbon Report", type: "Carbon & Net Zero Summary", frequency: "Quarterly", nextRun: "2025-04-01", recipients: 2 },
+  { name: "Monthly ESG Summary", type: "ESG Portfolio Pack", frequency: "Monthly", nextRun: "2025-02-01", recipients: 3, active: true },
+  { name: "Weekly PFI Update", type: "PFI Compliance Summary", frequency: "Weekly", nextRun: "2025-01-20", recipients: 5, active: true },
+  { name: "Quarterly Carbon Report", type: "Carbon & Net Zero", frequency: "Quarterly", nextRun: "2025-04-01", recipients: 2, active: false },
 ];
 
-const getStatusColor = (status: string) => {
+const getStatusStyles = (status: string) => {
   switch (status) {
-    case "Ready": return "bg-success/10 text-success border-success/20";
-    case "Generating": return "bg-primary/10 text-primary border-primary/20";
-    case "Failed": return "bg-destructive/10 text-destructive border-destructive/20";
-    default: return "bg-muted text-muted-foreground border-border";
+    case "Ready": return { bg: "bg-success/10", text: "text-success", border: "border-success/20", icon: CheckCircle };
+    case "Generating": return { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20", icon: Loader2 };
+    case "Failed": return { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20", icon: null };
+    default: return { bg: "bg-muted", text: "text-muted-foreground", border: "border-border", icon: null };
   }
 };
 
-const getFormatIcon = (format: string) => {
+const getFormatStyles = (format: string) => {
   switch (format) {
-    case "PDF": return FileText;
-    case "Excel": return FileSpreadsheet;
-    case "Word": return FileText;
-    case "PowerPoint": return Presentation;
-    default: return FileText;
+    case "PDF": return { icon: FileText, bg: "bg-destructive/10", text: "text-destructive" };
+    case "Excel": return { icon: FileSpreadsheet, bg: "bg-success/10", text: "text-success" };
+    case "PowerPoint": return { icon: Presentation, bg: "bg-accent/10", text: "text-accent" };
+    default: return { icon: FileText, bg: "bg-muted", text: "text-muted-foreground" };
   }
 };
 
 export default function Reports() {
   const [exportingStates, setExportingStates] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const stats = calculatePortfolioStats();
 
   const handleExport = (reportId: string, format: string, pdfType?: "portfolio" | "projects" | "carbon" | "taxonomy") => {
     const key = `${reportId}-${format}`;
@@ -126,12 +139,9 @@ export default function Reports() {
       const report = reportCards.find(r => r.id === reportId);
       
       if (format === "PDF" && pdfType) {
-        // Generate real PDF using jsPDF
         exportPDF(pdfType);
       } else if (format === "Excel") {
-        // Generate CSV/Excel
         const filename = `DBN_${report?.name.replace(/\s+/g, '_')}_${date}.csv`;
-        const stats = calculatePortfolioStats();
         
         let csvContent = "";
         
@@ -214,7 +224,7 @@ export default function Reports() {
       }
       
       setExportingStates(prev => ({ ...prev, [key]: false }));
-    }, 1000);
+    }, 1200);
   };
 
   const handleQuickExport = (type: string) => {
@@ -223,7 +233,6 @@ export default function Reports() {
     } else if (type === "All_Project_Data") {
       exportPDF("projects");
     } else if (type === "Complete_Dataset") {
-      // Export all data as CSV
       const date = new Date().toISOString().split('T')[0];
       const csvContent = [
         `DBN Complete Dataset Export`,
@@ -244,168 +253,308 @@ export default function Reports() {
     }
   };
 
+  const filteredReports = generatedReports.filter(r => 
+    r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="view-title">Reports</h1>
+            <h1 className="text-3xl font-bold text-foreground">Reports</h1>
             <p className="text-muted-foreground mt-1">
-              Generate, view, and export ESG reports
+              Generate, schedule, and export comprehensive ESG reports
             </p>
           </div>
-        </div>
-
-        {/* 6 Report Cards per Documentation */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {reportCards.map((report) => {
-            const Icon = report.icon;
-            return (
-              <div key={report.id} className="dashboard-card hover:shadow-lg transition-all">
-                <div className="flex items-start gap-4 mb-4">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${report.color}15`, color: report.color }}
-                  >
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{report.name}</h3>
-                    <p className="text-sm text-muted-foreground">{report.description}</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {report.formats.map((format) => {
-                    const FormatIcon = getFormatIcon(format);
-                    const isExporting = exportingStates[`${report.id}-${format}`];
-                    return (
-                      <Button
-                        key={format}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => handleExport(report.id, format, report.pdfType)}
-                        disabled={isExporting}
-                      >
-                        {isExporting ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <FormatIcon className="w-4 h-4" />
-                        )}
-                        {isExporting ? "Exporting..." : `Export ${format}`}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Quick Export Actions per Documentation */}
-        <div className="dashboard-card">
-          <h3 className="text-lg font-semibold mb-4">Quick Export Actions</h3>
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={() => handleQuickExport("Complete_Portfolio")} className="gap-2">
-              <FileText className="w-4 h-4" />
-              Export Portfolio Pack (PDF)
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Refresh
             </Button>
-            <Button onClick={() => handleQuickExport("All_Project_Data")} variant="outline" className="gap-2">
-              <FileSpreadsheet className="w-4 h-4" />
-              Export Project Drilldown (PDF)
-            </Button>
-            <Button onClick={() => handleQuickExport("Complete_Dataset")} variant="outline" className="gap-2">
-              <Download className="w-4 h-4" />
-              Export Complete Dataset (CSV)
+            <Button className="gap-2 bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4" />
+              New Report
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Generated Reports */}
-          <div className="lg:col-span-2 dashboard-card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-primary" />
-                Generated Reports
-              </h3>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{generatedReports.length}</p>
+                <p className="text-xs text-muted-foreground">Total Reports</p>
+              </div>
             </div>
-            <div className="space-y-3">
-              {generatedReports.map((report) => (
-                <div key={report.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-medium truncate">{report.name}</h4>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {report.date}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{report.generatedBy}</span>
+          </div>
+          <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{generatedReports.filter(r => r.status === "Ready").length}</p>
+                <p className="text-xs text-muted-foreground">Ready</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-accent" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{scheduledReports.filter(r => r.active).length}</p>
+                <p className="text-xs text-muted-foreground">Scheduled</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.totalProjects}</p>
+                <p className="text-xs text-muted-foreground">Projects</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Report Templates Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-accent" />
+              Report Templates
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {reportCards.map((report) => {
+              const Icon = report.icon;
+              return (
+                <div 
+                  key={report.id} 
+                  className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                >
+                  {/* Gradient Header */}
+                  <div className={cn("h-2 bg-gradient-to-r", report.gradient)} />
+                  
+                  <div className="p-5">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br text-white shadow-md",
+                        report.gradient
+                      )}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-foreground truncate">{report.name}</h3>
+                          {report.badge && (
+                            <Badge variant={report.badge === "Popular" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                              {report.badge}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{report.description}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Export Buttons */}
+                    <div className="flex flex-wrap gap-2 pt-3 border-t border-border">
+                      {report.formats.map((format) => {
+                        const formatStyle = getFormatStyles(format);
+                        const FormatIcon = formatStyle.icon;
+                        const isExporting = exportingStates[`${report.id}-${format}`];
+                        
+                        return (
+                          <Button
+                            key={format}
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "gap-2 flex-1 min-w-[100px] group/btn transition-all",
+                              "hover:border-primary hover:bg-primary/5"
+                            )}
+                            onClick={() => handleExport(report.id, format, report.pdfType)}
+                            disabled={isExporting}
+                          >
+                            {isExporting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FormatIcon className={cn("w-4 h-4", formatStyle.text)} />
+                            )}
+                            <span>{isExporting ? "Exporting..." : format}</span>
+                            <ArrowRight className="w-3 h-3 opacity-0 -ml-2 group-hover/btn:opacity-100 group-hover/btn:ml-0 transition-all" />
+                          </Button>
+                        );
+                      })}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <span className={cn(
-                      "px-2 py-1 rounded text-xs font-medium border",
-                      getStatusColor(report.status)
-                    )}>
-                      {report.status === "Ready" ? (
-                        <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick Export Section */}
+        <div className="bg-gradient-to-br from-primary/5 via-card to-accent/5 rounded-xl border border-border p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Download className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Quick Export</h3>
+              <p className="text-sm text-muted-foreground">One-click export for common reports</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              onClick={() => handleQuickExport("Complete_Portfolio")} 
+              className="gap-2 bg-primary hover:bg-primary/90"
+            >
+              <FileText className="w-4 h-4" />
+              Portfolio Pack (PDF)
+            </Button>
+            <Button 
+              onClick={() => handleQuickExport("All_Project_Data")} 
+              variant="outline" 
+              className="gap-2 hover:border-primary hover:bg-primary/5"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Project Drilldown (PDF)
+            </Button>
+            <Button 
+              onClick={() => handleQuickExport("Complete_Dataset")} 
+              variant="outline" 
+              className="gap-2 hover:border-success hover:bg-success/5"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Complete Dataset (CSV)
+            </Button>
+          </div>
+        </div>
+
+        {/* Generated Reports & Scheduled Reports */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Generated Reports - Takes 2 columns */}
+          <div className="xl:col-span-2 bg-card rounded-xl border border-border overflow-hidden">
+            <div className="p-5 border-b border-border bg-muted/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <FolderOpen className="w-5 h-5 text-primary" />
+                  Generated Reports
+                </h3>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search reports..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9 bg-background"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              {filteredReports.map((report) => {
+                const statusStyle = getStatusStyles(report.status);
+                const StatusIcon = statusStyle.icon;
+                
+                return (
+                  <div 
+                    key={report.id} 
+                    className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-foreground truncate">{report.name}</h4>
+                        <span className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border",
+                          statusStyle.bg, statusStyle.text, statusStyle.border
+                        )}>
+                          {StatusIcon && (
+                            <StatusIcon className={cn("w-3 h-3", report.status === "Generating" && "animate-spin")} />
+                          )}
                           {report.status}
                         </span>
-                      ) : report.status === "Generating" ? (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 animate-spin" />
-                          {report.status}
+                      </div>
+                      <div className="flex items-center gap-4 mt-1.5">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {report.date}
                         </span>
-                      ) : (
-                        report.status
-                      )}
-                    </span>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <span className="text-xs text-muted-foreground">{report.type}</span>
+                        <span className="text-xs text-muted-foreground">{report.size}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-success/10 hover:text-success">
                         <Download className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Scheduled Reports */}
-          <div className="dashboard-card">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              Scheduled Reports
-            </h3>
-            <div className="space-y-3">
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="p-5 border-b border-border bg-muted/30">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Clock className="w-5 h-5 text-accent" />
+                Scheduled Reports
+              </h3>
+            </div>
+            <div className="divide-y divide-border">
               {scheduledReports.map((report, idx) => (
-                <div key={idx} className="p-4 bg-muted/30 rounded-lg">
-                  <h4 className="font-medium text-sm">{report.name}</h4>
+                <div key={idx} className="p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-medium text-foreground text-sm">{report.name}</h4>
+                    <div className={cn(
+                      "w-2 h-2 rounded-full mt-1.5",
+                      report.active ? "bg-success" : "bg-muted-foreground"
+                    )} />
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">{report.type}</p>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                    <div className="text-xs">
-                      <span className="text-muted-foreground">Frequency: </span>
-                      <span className="font-medium">{report.frequency}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {report.frequency}
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Mail className="w-3 h-3" />
-                      {report.recipients} recipients
+                      {report.recipients}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Next run: {report.nextRun}
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Next: {report.nextRun}
+                  </p>
                 </div>
               ))}
+            </div>
+            <div className="p-4 border-t border-border">
+              <Button variant="outline" size="sm" className="w-full gap-2">
+                <Plus className="w-4 h-4" />
+                Schedule New Report
+              </Button>
             </div>
           </div>
         </div>
