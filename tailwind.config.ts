@@ -71,9 +71,14 @@ export default {
         },
         chart: {
           green: "hsl(var(--chart-green))",
-          orange: "hsl(var(--chart-orange))",
+          gold: "hsl(var(--chart-orange))",
           blue: "hsl(var(--chart-blue))",
           red: "hsl(var(--chart-red))",
+        },
+        gold: {
+          DEFAULT: "hsl(45, 90%, 48%)",
+          light: "hsl(45, 90%, 60%)",
+          dark: "hsl(45, 90%, 38%)",
         },
       },
       borderRadius: {
