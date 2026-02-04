@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { calculatePortfolioStats, formatCurrency, formatNumber } from "@/data/esgData";
+import { TaxonomyPieChart, CarbonScopeChart, EsgTrendChart } from "@/components/charts/ESGCharts";
 import esgSolarImage from "@/assets/esg-solar-panels.jpg";
 import esgWindImage from "@/assets/esg-wind-turbines.jpg";
 import esgForestImage from "@/assets/esg-forest.jpg";
@@ -140,141 +141,97 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Second Row */}
+        {/* Second Row - Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Green Taxonomy Breakdown */}
+          {/* Green Taxonomy Chart */}
           <div className="dashboard-card">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
               <Leaf className="w-5 h-5 text-success" />
-              Green Taxonomy Classification
+              Green Taxonomy
             </h3>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium text-success">Green</span>
-                  <span className="text-sm font-medium">{stats.greenTaxonomy.green} ({stats.greenTaxonomy.greenPercentage}%)</span>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-success rounded-full transition-all duration-500"
-                    style={{ width: `${stats.greenTaxonomy.greenPercentage}%` }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium text-warning">Transition</span>
-                  <span className="text-sm font-medium">{stats.greenTaxonomy.transition} ({stats.greenTaxonomy.transitionPercentage}%)</span>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-warning rounded-full transition-all duration-500"
-                    style={{ width: `${stats.greenTaxonomy.transitionPercentage}%` }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium text-destructive">Not Green</span>
-                  <span className="text-sm font-medium">{stats.greenTaxonomy.notGreen} ({stats.greenTaxonomy.notGreenPercentage}%)</span>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-destructive rounded-full transition-all duration-500"
-                    style={{ width: `${stats.greenTaxonomy.notGreenPercentage}%` }}
-                  />
-                </div>
-              </div>
+            <TaxonomyPieChart />
+            <div className="flex justify-center gap-4 text-xs mt-2">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span>Green ({stats.greenTaxonomy.greenPercentage}%)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500"></span>Transition ({stats.greenTaxonomy.transitionPercentage}%)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>Not Green ({stats.greenTaxonomy.notGreenPercentage}%)</span>
             </div>
             <Button 
               variant="outline" 
               className="w-full mt-4 gap-2"
               onClick={() => navigate("/green-taxonomy")}
             >
-              View Taxonomy Details
+              View Details
               <ArrowUpRight className="w-4 h-4" />
             </Button>
           </div>
 
-          {/* Carbon Footprint */}
+          {/* Carbon Scope Chart */}
           <div className="dashboard-card">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
               <Flame className="w-5 h-5 text-accent" />
-              Carbon Footprint Summary
+              Carbon by Scope
             </h3>
-            <div className="text-center mb-4">
-              <p className="text-3xl font-bold text-foreground">
-                {formatNumber(stats.carbonSummary.total)}
-              </p>
-              <p className="text-sm text-muted-foreground">Total tCO₂e</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-lg font-semibold text-foreground">
-                  {formatNumber(stats.carbonSummary.scope1)}
-                </p>
-                <p className="text-xs text-muted-foreground">Scope 1</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-lg font-semibold text-foreground">
-                  {formatNumber(stats.carbonSummary.scope2)}
-                </p>
-                <p className="text-xs text-muted-foreground">Scope 2</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-lg font-semibold text-foreground">
-                  {formatNumber(stats.carbonSummary.scope3)}
-                </p>
-                <p className="text-xs text-muted-foreground">Scope 3</p>
-              </div>
+            <CarbonScopeChart />
+            <div className="text-center mt-2">
+              <p className="text-2xl font-bold">{formatNumber(stats.carbonSummary.total)}</p>
+              <p className="text-xs text-muted-foreground">Total tCO₂e</p>
             </div>
             <Button 
               variant="outline" 
               className="w-full mt-4 gap-2"
               onClick={() => navigate("/carbon-netzero")}
             >
-              View Carbon Details
+              View Details
               <ArrowUpRight className="w-4 h-4" />
             </Button>
           </div>
 
-          {/* ESG Flags */}
+          {/* ESG Trend Chart */}
           <div className="dashboard-card">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-warning" />
-              ESG Status Flags
+            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              ESG Trend
             </h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg border border-destructive/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-destructive" />
-                  <span className="font-medium text-foreground">Critical</span>
-                </div>
-                <span className="text-xl font-bold text-destructive">{stats.esgFlags.critical}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-warning/5 rounded-lg border border-warning/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-warning" />
-                  <span className="font-medium text-foreground">Warning</span>
-                </div>
-                <span className="text-xl font-bold text-warning">{stats.esgFlags.warning}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-success/5 rounded-lg border border-success/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-success" />
-                  <span className="font-medium text-foreground">Compliant</span>
-                </div>
-                <span className="text-xl font-bold text-success">{stats.esgFlags.compliant}</span>
-              </div>
-            </div>
+            <EsgTrendChart />
             <Button 
               variant="outline" 
               className="w-full mt-4 gap-2"
-              onClick={() => navigate("/projects-drilldown")}
+              onClick={() => navigate("/dashboard/insights")}
             >
-              View All Projects
+              View Analytics
               <ArrowUpRight className="w-4 h-4" />
             </Button>
+          </div>
+        </div>
+
+        {/* Third Row - ESG Flags */}
+        <div className="dashboard-card">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-warning" />
+            ESG Status Flags
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center justify-between p-4 bg-destructive/5 rounded-lg border border-destructive/20">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-destructive" />
+                <span className="font-medium text-foreground">Critical</span>
+              </div>
+              <span className="text-2xl font-bold text-destructive">{stats.esgFlags.critical}</span>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-warning/5 rounded-lg border border-warning/20">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-warning" />
+                <span className="font-medium text-foreground">Warning</span>
+              </div>
+              <span className="text-2xl font-bold text-warning">{stats.esgFlags.warning}</span>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-success/5 rounded-lg border border-success/20">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-success" />
+                <span className="font-medium text-foreground">Compliant</span>
+              </div>
+              <span className="text-2xl font-bold text-success">{stats.esgFlags.compliant}</span>
+            </div>
           </div>
         </div>
 

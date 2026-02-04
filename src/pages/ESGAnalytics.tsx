@@ -4,54 +4,42 @@ import {
   TrendingUp, 
   TrendingDown, 
   CheckCircle, 
-  Clock, 
-  Leaf,
   AlertTriangle,
   BarChart3,
-  Download
+  Download,
+  PieChart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { calculatePortfolioStats, calculateSectorBreakdown } from "@/data/esgData";
+import { CarbonTrendChart, SectorBreakdownChart, EmissionsBySectorChart, EsgTrendChart } from "@/components/charts/ESGCharts";
 import esgWindImage from "@/assets/esg-wind-turbines.jpg";
 
-// Mock data for ESG Analytics
+const stats = calculatePortfolioStats();
+const sectorData = calculateSectorBreakdown();
+
+// Key trends data
 const keyTrends = [
-  { title: "ESG Completeness Score", current: 87, previous: 82, change: 5, trend: "up" },
-  { title: "Green Taxonomy Alignment", current: 65, previous: 58, change: 7, trend: "up" },
-  { title: "Reporting Timeliness", current: 90, previous: 85, change: 5, trend: "up" },
-  { title: "Carbon Reduction Progress", current: 27, previous: 22, change: 5, trend: "up" },
+  { title: "ESG Completeness", current: stats.avgEsgCompleteness, previous: stats.avgEsgCompleteness - 5, change: 5, trend: "up" },
+  { title: "Green Taxonomy", current: stats.greenTaxonomy.greenPercentage, previous: stats.greenTaxonomy.greenPercentage - 7, change: 7, trend: "up" },
+  { title: "On-time Reporting", current: Math.round((stats.reportingTimeliness.onTime / stats.reportingTimeliness.total) * 100), previous: 85, change: 5, trend: "up" },
+  { title: "Carbon Reduction", current: 27, previous: 22, change: 5, trend: "up" },
 ];
 
-const sectorBreakdown = [
-  { sector: "Renewable Energy", projects: 12, value: 4500000000, greenPercentage: 92 },
-  { sector: "Agriculture", projects: 8, value: 2800000000, greenPercentage: 75 },
-  { sector: "Manufacturing", projects: 10, value: 3200000000, greenPercentage: 45 },
-  { sector: "Real Estate", projects: 7, value: 1500000000, greenPercentage: 68 },
-  { sector: "Water & Sanitation", projects: 5, value: 500000000, greenPercentage: 88 },
-];
-
-const topPerformers = [
-  { name: "Lagos Solar Farm Development", sector: "Renewable Energy", score: 95, status: "Excellent" },
-  { name: "Rivers State Water Treatment", sector: "Water & Sanitation", score: 92, status: "Excellent" },
-  { name: "Abuja Green Building Initiative", sector: "Real Estate", score: 88, status: "Good" },
-  { name: "Kano Agricultural Expansion", sector: "Agriculture", score: 85, status: "Good" },
-  { name: "Ogun Clean Energy Hub", sector: "Renewable Energy", score: 82, status: "Good" },
-];
+const topPerformers = sectorData.slice(0, 5).map((s, idx) => ({
+  name: s.sector,
+  projects: s.projects,
+  score: s.esgScore,
+  status: s.esgScore >= 85 ? "Excellent" : s.esgScore >= 70 ? "Good" : "Fair"
+}));
 
 const riskAreas = [
-  { area: "Missing Carbon Data", projects: 8, severity: "High" },
-  { area: "Incomplete ESG Documentation", projects: 12, severity: "Medium" },
-  { area: "Delayed Reporting", projects: 4, severity: "High" },
-  { area: "Non-compliant Taxonomy", projects: 6, severity: "Medium" },
-  { area: "Pending Validations", projects: 15, severity: "Low" },
+  { area: "Missing Carbon Data", projects: stats.esgFlags.critical, severity: "High" },
+  { area: "Incomplete Documentation", projects: stats.esgFlags.warning, severity: "Medium" },
+  { area: "Delayed Reporting", projects: stats.reportingTimeliness.late, severity: "High" },
+  { area: "Non-compliant Taxonomy", projects: stats.greenTaxonomy.notGreen, severity: "Medium" },
+  { area: "Pending Validations", projects: Math.round(stats.totalProjects * 0.15), severity: "Low" },
 ];
-
-const formatCurrency = (value: number) => {
-  if (value >= 1000000000) {
-    return `₦${(value / 1000000000).toFixed(1)}B`;
-  }
-  return `₦${(value / 1000000).toFixed(0)}M`;
-};
 
 const getSeverityColor = (severity: string) => {
   switch (severity) {
@@ -109,7 +97,7 @@ export default function ESGAnalytics() {
                   ) : (
                     <TrendingDown className="w-4 h-4" />
                   )}
-                  {trend.change}%
+                  +{trend.change}%
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-1">vs. previous period ({trend.previous}%)</p>
@@ -117,59 +105,60 @@ export default function ESGAnalytics() {
           ))}
         </div>
 
+        {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sector Breakdown */}
+          {/* Carbon Trend */}
           <div className="dashboard-card">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-primary" />
-              Sector Breakdown
+              Carbon Emissions Trend
             </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 text-sm font-medium text-muted-foreground">Sector</th>
-                    <th className="text-center py-3 text-sm font-medium text-muted-foreground">Projects</th>
-                    <th className="text-right py-3 text-sm font-medium text-muted-foreground">Value</th>
-                    <th className="text-right py-3 text-sm font-medium text-muted-foreground">Green %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sectorBreakdown.map((sector) => (
-                    <tr key={sector.sector} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer transition-colors">
-                      <td className="py-3 font-medium">{sector.sector}</td>
-                      <td className="py-3 text-center">{sector.projects}</td>
-                      <td className="py-3 text-right">{formatCurrency(sector.value)}</td>
-                      <td className="py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-success rounded-full"
-                              style={{ width: `${sector.greenPercentage}%` }}
-                            />
-                          </div>
-                          <span className="text-sm font-medium w-10">{sector.greenPercentage}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CarbonTrendChart />
           </div>
 
+          {/* ESG Trend */}
+          <div className="dashboard-card">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-success" />
+              ESG Completeness Trend
+            </h3>
+            <EsgTrendChart />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Sector Breakdown Chart */}
+          <div className="dashboard-card">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <PieChart className="w-5 h-5 text-primary" />
+              Portfolio Value by Sector
+            </h3>
+            <SectorBreakdownChart />
+          </div>
+
+          {/* Emissions by Sector */}
+          <div className="dashboard-card">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-accent" />
+              Carbon Emissions by Sector
+            </h3>
+            <EmissionsBySectorChart />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Performers */}
           <div className="dashboard-card">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-success" />
-              Top Performers
+              Top Performing Sectors
             </h3>
             <div className="space-y-3">
               {topPerformers.map((performer, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{performer.name}</p>
-                    <p className="text-sm text-muted-foreground">{performer.sector}</p>
+                    <p className="text-sm text-muted-foreground">{performer.projects} projects</p>
                   </div>
                   <div className="flex items-center gap-3 ml-4">
                     <span className="text-lg font-bold">{performer.score}%</span>
@@ -184,34 +173,32 @@ export default function ESGAnalytics() {
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Risk Areas */}
-        <div className="dashboard-card">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-warning" />
-            Risk Areas Requiring Attention
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {riskAreas.map((risk, idx) => (
-              <div 
-                key={idx} 
-                className={cn(
-                  "p-4 rounded-lg border cursor-pointer hover:shadow-md transition-all",
-                  getSeverityColor(risk.severity)
-                )}
-              >
-                <div className="flex items-start justify-between">
+          {/* Risk Areas */}
+          <div className="dashboard-card">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-warning" />
+              Risk Areas
+            </h3>
+            <div className="space-y-3">
+              {riskAreas.map((risk, idx) => (
+                <div 
+                  key={idx} 
+                  className={cn(
+                    "p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all flex items-center justify-between",
+                    getSeverityColor(risk.severity)
+                  )}
+                >
                   <div>
-                    <h4 className="font-medium">{risk.area}</h4>
-                    <p className="text-sm mt-1">{risk.projects} projects affected</p>
+                    <h4 className="font-medium text-sm">{risk.area}</h4>
+                    <p className="text-xs mt-0.5">{risk.projects} projects affected</p>
                   </div>
                   <span className="text-xs font-medium px-2 py-1 rounded bg-background/50">
                     {risk.severity}
                   </span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -4,15 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  MessageCircle, 
   X, 
   Send, 
   Bot, 
   User, 
-  Sparkles,
   Minimize2,
   Maximize2,
-  Loader2
+  Loader2,
+  BrainCircuit
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calculatePortfolioStats } from "@/data/esgData";
@@ -24,58 +23,234 @@ interface Message {
   timestamp: Date;
 }
 
-// AI responses based on portfolio data
+// Format response as clean HTML instead of markdown
+const formatResponse = (text: string): string => {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>');
+};
+
+// AI responses based on portfolio data - returns structured HTML
 const generateResponse = (query: string): string => {
   const stats = calculatePortfolioStats();
   const lowerQuery = query.toLowerCase();
   
   // Portfolio overview queries
   if (lowerQuery.includes("portfolio") && (lowerQuery.includes("overview") || lowerQuery.includes("summary"))) {
-    return `**Portfolio Overview:**\n\n• **Total Projects:** ${stats.totalProjects}\n• **Portfolio Value:** ₦${(stats.totalPortfolioValue / 1000000000).toFixed(1)}B\n• **ESG Completeness:** ${stats.avgEsgCompleteness}%\n• **Green Classification:** ${stats.greenTaxonomy.greenPercentage}% of projects\n• **Total Carbon Emissions:** ${stats.carbonSummary.total.toLocaleString()} tCO₂e`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">Portfolio Overview</div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="text-muted-foreground text-xs">Total Projects</div>
+          <div class="font-medium">${stats.totalProjects}</div>
+        </div>
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="text-muted-foreground text-xs">Portfolio Value</div>
+          <div class="font-medium">₦${(stats.totalPortfolioValue / 1000000000).toFixed(1)}B</div>
+        </div>
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="text-muted-foreground text-xs">ESG Completeness</div>
+          <div class="font-medium">${stats.avgEsgCompleteness}%</div>
+        </div>
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="text-muted-foreground text-xs">Green Classification</div>
+          <div class="font-medium">${stats.greenTaxonomy.greenPercentage}%</div>
+        </div>
+      </div>
+      <div class="text-xs text-muted-foreground">Total Carbon: ${stats.carbonSummary.total.toLocaleString()} tCO₂e</div>
+    </div>`;
   }
   
   // Carbon/emissions queries
   if (lowerQuery.includes("carbon") || lowerQuery.includes("emission") || lowerQuery.includes("co2")) {
-    return `**Carbon Emissions Summary:**\n\n• **Total Emissions:** ${stats.carbonSummary.total.toLocaleString()} tCO₂e\n• **Scope 1 (Direct):** ${stats.carbonSummary.scope1.toLocaleString()} tCO₂e\n• **Scope 2 (Energy):** ${stats.carbonSummary.scope2.toLocaleString()} tCO₂e\n• **Scope 3 (Indirect):** ${stats.carbonSummary.scope3.toLocaleString()} tCO₂e\n\nScope 3 emissions represent ${Math.round((stats.carbonSummary.scope3 / stats.carbonSummary.total) * 100)}% of total portfolio emissions.`;
+    const scope3Percent = Math.round((stats.carbonSummary.scope3 / stats.carbonSummary.total) * 100);
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">Carbon Emissions Summary</div>
+      <div class="text-center py-2">
+        <div class="text-2xl font-bold">${stats.carbonSummary.total.toLocaleString()}</div>
+        <div class="text-xs text-muted-foreground">Total tCO₂e</div>
+      </div>
+      <div class="grid grid-cols-3 gap-2 text-sm text-center">
+        <div class="bg-primary/10 p-2 rounded">
+          <div class="font-medium">${stats.carbonSummary.scope1.toLocaleString()}</div>
+          <div class="text-xs text-muted-foreground">Scope 1</div>
+        </div>
+        <div class="bg-accent/10 p-2 rounded">
+          <div class="font-medium">${stats.carbonSummary.scope2.toLocaleString()}</div>
+          <div class="text-xs text-muted-foreground">Scope 2</div>
+        </div>
+        <div class="bg-warning/10 p-2 rounded">
+          <div class="font-medium">${stats.carbonSummary.scope3.toLocaleString()}</div>
+          <div class="text-xs text-muted-foreground">Scope 3</div>
+        </div>
+      </div>
+      <div class="text-xs text-muted-foreground">Scope 3 represents ${scope3Percent}% of total emissions</div>
+    </div>`;
   }
   
   // Green taxonomy queries
   if (lowerQuery.includes("taxonomy") || lowerQuery.includes("green") || lowerQuery.includes("classification")) {
-    return `**Green Taxonomy Classification:**\n\n• **Green Projects:** ${stats.greenTaxonomy.green} (${stats.greenTaxonomy.greenPercentage}%)\n• **Transition Projects:** ${stats.greenTaxonomy.transition} (${stats.greenTaxonomy.transitionPercentage}%)\n• **Not Green:** ${stats.greenTaxonomy.notGreen} (${stats.greenTaxonomy.notGreenPercentage}%)\n\n**By Portfolio Value:** ${stats.greenTaxonomy.greenPercentageByValue}% of total financing is classified as Green.`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">Green Taxonomy Classification</div>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-sm">
+          <span class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-green-500"></span>
+            Green
+          </span>
+          <span class="font-medium">${stats.greenTaxonomy.green} (${stats.greenTaxonomy.greenPercentage}%)</span>
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <span class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+            Transition
+          </span>
+          <span class="font-medium">${stats.greenTaxonomy.transition} (${stats.greenTaxonomy.transitionPercentage}%)</span>
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <span class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+            Not Green
+          </span>
+          <span class="font-medium">${stats.greenTaxonomy.notGreen} (${stats.greenTaxonomy.notGreenPercentage}%)</span>
+        </div>
+      </div>
+      <div class="text-xs text-muted-foreground border-t pt-2 mt-2">
+        By portfolio value: ${stats.greenTaxonomy.greenPercentageByValue}% classified as Green
+      </div>
+    </div>`;
   }
   
   // ESG/compliance queries
   if (lowerQuery.includes("esg") || lowerQuery.includes("compliance") || lowerQuery.includes("completeness")) {
-    return `**ESG Data Status:**\n\n• **Average Completeness:** ${stats.avgEsgCompleteness}%\n• **On-time Reporting:** ${stats.reportingTimeliness.onTime} projects\n• **Late Reporting:** ${stats.reportingTimeliness.late} projects\n\n**ESG Flags:**\n• Critical: ${stats.esgFlags.critical}\n• Warning: ${stats.esgFlags.warning}\n• Compliant: ${stats.esgFlags.compliant}`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">ESG Data Status</div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="text-muted-foreground text-xs">Avg Completeness</div>
+          <div class="font-medium">${stats.avgEsgCompleteness}%</div>
+        </div>
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="text-muted-foreground text-xs">On-time Reports</div>
+          <div class="font-medium">${stats.reportingTimeliness.onTime} projects</div>
+        </div>
+      </div>
+      <div class="font-medium text-sm mt-2">ESG Flags</div>
+      <div class="flex gap-2 text-xs">
+        <span class="px-2 py-1 bg-red-100 text-red-700 rounded">Critical: ${stats.esgFlags.critical}</span>
+        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded">Warning: ${stats.esgFlags.warning}</span>
+        <span class="px-2 py-1 bg-green-100 text-green-700 rounded">OK: ${stats.esgFlags.compliant}</span>
+      </div>
+    </div>`;
   }
   
   // PFI queries
   if (lowerQuery.includes("pfi") || lowerQuery.includes("bank") || lowerQuery.includes("financial institution")) {
-    return `**PFI Performance Summary:**\n\nThe portfolio is managed through 5 Participating Financial Institutions:\n\n1. **GT Bank** - 24 projects, high data quality\n2. **Fidelity Bank** - 22 projects, needs improvement\n3. **Ecobank** - 18 projects, good compliance\n4. **Baobab MFB** - 20 projects, excellent reporting\n5. **Infinity MFB** - 16 projects, good compliance\n\n${stats.reportingTimeliness.onTime} of ${stats.totalProjects} PFIs submitted on time.`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">PFI Performance Summary</div>
+      <div class="text-sm text-muted-foreground mb-2">Portfolio managed by 8 PFIs</div>
+      <div class="space-y-1 text-xs">
+        <div class="flex justify-between p-1.5 bg-muted/30 rounded">GT Bank<span class="font-medium">13 projects</span></div>
+        <div class="flex justify-between p-1.5 bg-muted/30 rounded">Fidelity Bank<span class="font-medium">13 projects</span></div>
+        <div class="flex justify-between p-1.5 bg-muted/30 rounded">Ecobank<span class="font-medium">13 projects</span></div>
+        <div class="flex justify-between p-1.5 bg-muted/30 rounded">Access Bank<span class="font-medium">12 projects</span></div>
+        <div class="flex justify-between p-1.5 bg-muted/30 rounded">Zenith Bank<span class="font-medium">12 projects</span></div>
+      </div>
+      <div class="text-xs text-muted-foreground">${stats.reportingTimeliness.onTime} of ${stats.totalProjects} submitted on time</div>
+    </div>`;
   }
   
   // Net zero queries
   if (lowerQuery.includes("net zero") || lowerQuery.includes("netzero") || lowerQuery.includes("target")) {
-    return `**Net Zero Progress:**\n\n• **Target Year:** 2050\n• **Reduction Target:** 40% by 2030\n• **Current Progress:** ~21% reduction from baseline\n\nThe portfolio is on track to meet interim targets, with renewable energy projects leading the reduction efforts.`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">Net Zero Progress</div>
+      <div class="grid grid-cols-3 gap-2 text-sm text-center">
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="font-medium">2050</div>
+          <div class="text-xs text-muted-foreground">Target Year</div>
+        </div>
+        <div class="bg-muted/50 p-2 rounded">
+          <div class="font-medium">40%</div>
+          <div class="text-xs text-muted-foreground">2030 Target</div>
+        </div>
+        <div class="bg-primary/10 p-2 rounded">
+          <div class="font-medium text-primary">21%</div>
+          <div class="text-xs text-muted-foreground">Current</div>
+        </div>
+      </div>
+      <div class="w-full bg-muted rounded-full h-2 mt-2">
+        <div class="bg-primary h-2 rounded-full" style="width: 52%"></div>
+      </div>
+      <div class="text-xs text-muted-foreground">Portfolio on track to meet interim targets</div>
+    </div>`;
   }
   
   // Risk queries
   if (lowerQuery.includes("risk") || lowerQuery.includes("flag") || lowerQuery.includes("issue")) {
-    return `**Risk Assessment:**\n\n• **Critical Issues:** ${stats.esgFlags.critical} projects require immediate attention\n• **Warnings:** ${stats.esgFlags.warning} projects need review\n• **Compliant:** ${stats.esgFlags.compliant} projects meeting standards\n\n**Key Risk Areas:**\n- Missing evidence documentation\n- Low data quality scores (<60%)\n- Off-track carbon reduction targets`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">Risk Assessment</div>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded text-sm">
+          <span>Critical Issues</span>
+          <span class="font-bold text-red-600">${stats.esgFlags.critical}</span>
+        </div>
+        <div class="flex items-center justify-between p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+          <span>Warnings</span>
+          <span class="font-bold text-yellow-600">${stats.esgFlags.warning}</span>
+        </div>
+        <div class="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded text-sm">
+          <span>Compliant</span>
+          <span class="font-bold text-green-600">${stats.esgFlags.compliant}</span>
+        </div>
+      </div>
+      <div class="text-xs text-muted-foreground">Key risks: Missing documentation, low data quality, off-track carbon targets</div>
+    </div>`;
   }
   
   // Sector queries
   if (lowerQuery.includes("sector") || lowerQuery.includes("industry")) {
-    return `**Sector Distribution:**\n\nTop sectors by portfolio value:\n\n1. **Manufacturing** - High emissions, transition focus\n2. **Agriculture** - Strong green classification\n3. **Energy** - Renewable projects performing well\n4. **Services** - Good ESG compliance\n5. **Trade** - Mixed classification status\n\nRenewable Energy and Agriculture sectors show the highest green taxonomy alignment.`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">Sector Distribution</div>
+      <div class="space-y-1 text-xs">
+        <div class="flex justify-between p-1.5 bg-muted/30 rounded">Manufacturing<span class="text-muted-foreground">High emissions</span></div>
+        <div class="flex justify-between p-1.5 bg-green-50 rounded">Agriculture<span class="text-green-600">Strong green</span></div>
+        <div class="flex justify-between p-1.5 bg-green-50 rounded">Energy<span class="text-green-600">Renewables</span></div>
+        <div class="flex justify-between p-1.5 bg-muted/30 rounded">Services<span class="text-muted-foreground">Good compliance</span></div>
+        <div class="flex justify-between p-1.5 bg-yellow-50 rounded">Trade<span class="text-yellow-600">Mixed status</span></div>
+      </div>
+      <div class="text-xs text-muted-foreground">Energy and Agriculture show highest green alignment</div>
+    </div>`;
   }
   
   // Help/capabilities
   if (lowerQuery.includes("help") || lowerQuery.includes("what can you") || lowerQuery.includes("capabilities")) {
-    return `**I can help you with:**\n\n• **Portfolio Overview** - Total projects, values, status\n• **Carbon Analysis** - Scope 1/2/3 emissions, trends\n• **Green Taxonomy** - Classification breakdown\n• **ESG Compliance** - Completeness, reporting status\n• **PFI Performance** - Bank-level analysis\n• **Net Zero Progress** - Target tracking\n• **Risk Assessment** - Critical flags, warnings\n• **Sector Analysis** - Industry breakdown\n\nJust ask any question about your ESG portfolio!`;
+    return `<div class="space-y-3">
+      <div class="font-semibold text-primary">I can help you with:</div>
+      <div class="grid grid-cols-2 gap-1 text-xs">
+        <div class="p-1.5 bg-muted/50 rounded">Portfolio Overview</div>
+        <div class="p-1.5 bg-muted/50 rounded">Carbon Analysis</div>
+        <div class="p-1.5 bg-muted/50 rounded">Green Taxonomy</div>
+        <div class="p-1.5 bg-muted/50 rounded">ESG Compliance</div>
+        <div class="p-1.5 bg-muted/50 rounded">PFI Performance</div>
+        <div class="p-1.5 bg-muted/50 rounded">Net Zero Progress</div>
+        <div class="p-1.5 bg-muted/50 rounded">Risk Assessment</div>
+        <div class="p-1.5 bg-muted/50 rounded">Sector Analysis</div>
+      </div>
+      <div class="text-xs text-muted-foreground">Just ask any question about your ESG portfolio!</div>
+    </div>`;
   }
   
   // Default response
-  return `I can help you understand your ESG portfolio data. Try asking about:\n\n• Portfolio overview\n• Carbon emissions\n• Green taxonomy classification\n• ESG compliance status\n• PFI performance\n• Net zero targets\n• Risk flags\n\nWhat would you like to know?`;
+  return `<div class="space-y-3">
+    <div class="text-sm">I can help you understand your ESG portfolio. Try asking about:</div>
+    <div class="flex flex-wrap gap-1">
+      <span class="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">Portfolio overview</span>
+      <span class="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">Carbon emissions</span>
+      <span class="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">Green taxonomy</span>
+      <span class="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">ESG compliance</span>
+      <span class="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">Net zero targets</span>
+    </div>
+  </div>`;
 };
 
 export function AIAssistant() {
@@ -85,7 +260,11 @@ export function AIAssistant() {
     {
       id: "welcome",
       role: "assistant",
-      content: "Hello! I'm your ESG AI Assistant. I can help you analyze portfolio data, carbon emissions, taxonomy classifications, and more. What would you like to know?",
+      content: `<div class="space-y-2">
+        <div class="font-medium">Hello! I'm your ESG AI Assistant.</div>
+        <div class="text-sm text-muted-foreground">I can help you analyze portfolio data, carbon emissions, taxonomy classifications, and more.</div>
+        <div class="text-xs text-muted-foreground">What would you like to know?</div>
+      </div>`,
       timestamp: new Date(),
     },
   ]);
@@ -131,7 +310,7 @@ export function AIAssistant() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
       setIsTyping(false);
-    }, 800 + Math.random() * 700);
+    }, 600 + Math.random() * 400);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -143,22 +322,22 @@ export function AIAssistant() {
 
   const suggestedQuestions = [
     "Portfolio overview",
-    "Carbon emissions summary",
-    "Green taxonomy breakdown",
-    "ESG compliance status",
+    "Carbon emissions",
+    "Green taxonomy",
+    "ESG status",
   ];
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Professional AI Icon */}
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group",
+          "fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group border-2 border-primary/20",
           isOpen && "scale-0 opacity-0"
         )}
       >
-        <Sparkles className="w-6 h-6 group-hover:scale-110 transition-transform" />
+        <BrainCircuit className="w-7 h-7 group-hover:scale-110 transition-transform" />
       </button>
 
       {/* Chat Window */}
@@ -172,10 +351,10 @@ export function AIAssistant() {
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+              <BrainCircuit className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h3 className="font-semibold text-sm">ESG AI Assistant</h3>
@@ -222,30 +401,37 @@ export function AIAssistant() {
                     "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-primary/10 text-primary"
+                      : "bg-gradient-to-br from-primary/20 to-primary/10"
                   )}
                 >
                   {message.role === "user" ? (
                     <User className="w-4 h-4" />
                   ) : (
-                    <Bot className="w-4 h-4" />
+                    <Bot className="w-4 h-4 text-primary" />
                   )}
                 </div>
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
+                    "max-w-[85%] rounded-2xl px-4 py-3",
                     message.role === "user"
                       ? "bg-primary text-primary-foreground rounded-tr-sm"
                       : "bg-muted rounded-tl-sm"
                   )}
                 >
-                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  {message.role === "assistant" ? (
+                    <div 
+                      className="text-sm"
+                      dangerouslySetInnerHTML={{ __html: message.content }} 
+                    />
+                  ) : (
+                    <div className="text-sm">{message.content}</div>
+                  )}
                 </div>
               </div>
             ))}
             {isTyping && (
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
                   <Bot className="w-4 h-4 text-primary" />
                 </div>
                 <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3">
